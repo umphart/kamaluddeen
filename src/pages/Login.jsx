@@ -1,7 +1,8 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
 import { FiLock, FiUser, FiLogIn } from 'react-icons/fi';
-import './Login.css'; 
+import './Login.css';
+import schoolLogo from './kcc.jpeg';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -15,10 +16,11 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      const success = onLogin(username, password);
+      const success = await onLogin(username, password);
       if (!success) {
         setError('Invalid credentials');
       }
+      // Note: The redirect is handled by App.js state change
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
@@ -32,7 +34,11 @@ const Login = ({ onLogin }) => {
         <div className="login-header">
           <div className="login-logo">
             <div className="logo-circle">
-              <FiLock size={32} />
+              <img 
+                src={schoolLogo} 
+                alt="KCC Logo" 
+                className="school-logo"
+              />
             </div>
           </div>
           <h2>KCC Admin Portal</h2>

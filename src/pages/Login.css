@@ -186,3 +186,29 @@
   color: #a0aec0;
   font-size: 12px;
 }
+/* Add to src/pages/Login.css */
+
+.school-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  overflow: hidden;
+  border: 3px solid #e2e8f0;
+}
+
+/* Optional: Add a subtle shadow to make it stand out */
+.logo-circle {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}

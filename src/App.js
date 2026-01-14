@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Switch, Route, Link, Redirect } from 'react-router-dom';
+import { BrowserRouter as Router, Switch, Route, Redirect, Link } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   FiGrid, 
@@ -102,31 +102,33 @@ function App() {
   };
 
   const handleLogin = (username, password) => {
-    // Default credentials
-    const defaultUsername = 'admin';
-    const defaultPassword = 'kcc123';
-    
-    if (username === defaultUsername && password === defaultPassword) {
-      const userData = {
-        username,
-        role: 'Administrator',
-        loginTime: new Date().toLocaleString()
-      };
+    return new Promise((resolve) => {
+      // Default credentials
+      const defaultUsername = 'admin';
+      const defaultPassword = 'kcc123';
       
-      setIsAuthenticated(true);
-      setUser(userData);
-      
-      // Save to localStorage
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('authTimestamp', new Date().getTime().toString());
-      
-      toast.success('Login successful!');
-      return true;
-    } else {
-      toast.error('Invalid username or password');
-      return false;
-    }
+      if (username === defaultUsername && password === defaultPassword) {
+        const userData = {
+          username,
+          role: 'Administrator',
+          loginTime: new Date().toLocaleString()
+        };
+        
+        setIsAuthenticated(true);
+        setUser(userData);
+        
+        // Save to localStorage
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('authTimestamp', new Date().getTime().toString());
+        
+        toast.success('Login successful!');
+        resolve(true);
+      } else {
+        toast.error('Invalid username or password');
+        resolve(false);
+      }
+    });
   };
 
   const handleLogout = () => {
@@ -146,11 +148,6 @@ function App() {
         <p>Loading...</p>
       </div>
     );
-  }
-
-  // If not authenticated, show login page
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
   }
 
   return (
@@ -186,184 +183,210 @@ function App() {
       
       <Router>
         <div className="app">
-          <header className="header">
-            <div className="header-left">
-              <button 
-                className="menu-toggle" 
-                onClick={toggleSidebar}
-                aria-label="Toggle menu"
-              >
-                {sidebarOpen && !isMobile ? <FiX size={24} /> : <FiMenu size={24} />}
-              </button>
-              <div className="logo-container">
-                <div className="school-logo">
-                  <img 
-                    src={logo} 
-                    alt="KCC Logo" 
-                    className="logo-image"
+          {/* Render login page if not authenticated */}
+          {!isAuthenticated ? (
+            <Switch>
+              <Route path="/">
+                <Login onLogin={handleLogin} />
+              </Route>
+              <Redirect to="/" />
+            </Switch>
+          ) : (
+            <>
+              <header className="header">
+                <div className="header-left">
+                  <button 
+                    className="menu-toggle" 
+                    onClick={toggleSidebar}
+                    aria-label="Toggle menu"
+                  >
+                    {sidebarOpen && !isMobile ? <FiX size={24} /> : <FiMenu size={24} />}
+                  </button>
+                  <div className="logo-container">
+                    <div className="school-logo">
+                      <img 
+                        src={logo} 
+                        alt="KCC Logo" 
+                        className="logo-image"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Centered School Name */}
+                <div className="header-center">
+                  <h2 className="school-name">Kamaluddeen Comprehensive College</h2>
+                </div>
+                
+                {/* User info and logout */}
+                <div className="header-right">
+                  <div className="user-info">
+                    <div className="user-avatar">
+                      <FiUser size={20} />
+                    </div>
+                    <div className="user-details">
+                      <span className="username">{user?.username}</span>
+                      <span className="user-role">{user?.role}</span>
+                    </div>
+                    <button 
+                      className="logout-btn"
+                      onClick={handleLogout}
+                      title="Logout"
+                    >
+                      <FiLogOut size={18} />
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              <div className="main-container">
+                {/* Overlay for mobile when sidebar is open */}
+                {isMobile && sidebarOpen && (
+                  <div 
+                    className="sidebar-overlay" 
+                    onClick={() => setSidebarOpen(false)}
                   />
-                </div>
-              </div>
-            </div>
-            
-            {/* Centered School Name */}
-            <div className="header-center">
-              <h2 className="school-name">Kamaluddeen Comprehensive College</h2>
-            </div>
-            
-            {/* User info and logout */}
-            <div className="header-right">
-              <div className="user-info">
-                <div className="user-avatar">
-                  <FiUser size={20} />
-                </div>
-                <div className="user-details">
-                  <span className="username">{user?.username}</span>
-                  <span className="user-role">{user?.role}</span>
-                </div>
-                <button 
-                  className="logout-btn"
-                  onClick={handleLogout}
-                  title="Logout"
+                )}
+
+                {/* Sidebar with conditional classes */}
+                <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'} ${isMobile ? 'mobile' : ''}`}>
+                  <nav>
+                    <ul className="nav-menu">
+                      <li>
+                        <Link 
+                          to="/" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FiGrid size={18} />
+                          </span>
+                          <span className="nav-text">Dashboard</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/admissions" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <MdSchool size={18} />
+                          </span>
+                          <span className="nav-text">Admissions</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/classes" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FaUserGraduate size={18} />
+                          </span>
+                          <span className="nav-text">Classes</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/teachers" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FaChalkboardTeacher size={18} />
+                          </span>
+                          <span className="nav-text">Teachers</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/academics" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FaBook size={18} />
+                          </span>
+                          <span className="nav-text">Academics</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/results" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FaChartLine size={18} />
+                          </span>
+                          <span className="nav-text">Results & Positions</span>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link 
+                          to="/settings" 
+                          className="nav-link"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <span className="nav-icon">
+                            <FiSettings size={18} />
+                          </span>
+                          <span className="nav-text">Settings</span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </nav>
+                  
+                  <div className="sidebar-footer">
+                    <div className="school-info">
+                      <h4>
+                        <FiHome size={16} style={{ marginRight: '8px' }} />
+                        KCC Info
+                      </h4>
+                      <p>Est. 2024</p>
+                      <p>Pre-Nursery to JSS 3</p>
+                    </div>
+                    <div className="user-status">
+                      <FiLock size={14} style={{ marginRight: '6px' }} />
+                      <small>Logged in as {user?.username}</small>
+                    </div>
+                  </div>
+                </aside>
+
+                <main 
+                  className={`main-content ${sidebarOpen && !isMobile ? 'with-sidebar' : ''}`}
+                  onClick={handleContentClick}
                 >
-                  <FiLogOut size={18} />
-                </button>
+                  <Switch>
+                    <Route exact path="/">
+                      <Dashboard />
+                    </Route>
+                    <Route path="/admissions">
+                      <Admissions />
+                    </Route>
+                    <Route path="/classes">
+                      <Classes />
+                    </Route>
+                    <Route path="/teachers">
+                      <Teachers />
+                    </Route>
+                    <Route path="/academics">
+                      <Academics />
+                    </Route>
+                    <Route path="/results">
+                      <Results />
+                    </Route>
+                    <Route path="/settings">
+                      <Settings />
+                    </Route>
+                    <Redirect to="/" />
+                  </Switch>
+                </main>
               </div>
-            </div>
-          </header>
-
-          <div className="main-container">
-            {/* Overlay for mobile when sidebar is open */}
-            {isMobile && sidebarOpen && (
-              <div 
-                className="sidebar-overlay" 
-                onClick={() => setSidebarOpen(false)}
-              />
-            )}
-
-            {/* Sidebar with conditional classes */}
-            <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'} ${isMobile ? 'mobile' : ''}`}>
-              <nav>
-                <ul className="nav-menu">
-                  <li>
-                    <Link 
-                      to="/" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FiGrid size={18} />
-                      </span>
-                      <span className="nav-text">Dashboard</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/admissions" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <MdSchool size={18} />
-                      </span>
-                      <span className="nav-text">Admissions</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/classes" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FaUserGraduate size={18} />
-                      </span>
-                      <span className="nav-text">Classes</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/teachers" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FaChalkboardTeacher size={18} />
-                      </span>
-                      <span className="nav-text">Teachers</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/academics" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FaBook size={18} />
-                      </span>
-                      <span className="nav-text">Academics</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/results" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FaChartLine size={18} />
-                      </span>
-                      <span className="nav-text">Results & Positions</span>
-                    </Link>
-                  </li>
-                  <li>
-                    <Link 
-                      to="/settings" 
-                      className="nav-link"
-                      onClick={() => isMobile && setSidebarOpen(false)}
-                    >
-                      <span className="nav-icon">
-                        <FiSettings size={18} />
-                      </span>
-                      <span className="nav-text">Settings</span>
-                    </Link>
-                  </li>
-                </ul>
-              </nav>
-              
-              <div className="sidebar-footer">
-                <div className="school-info">
-                  <h4>
-                    <FiHome size={16} style={{ marginRight: '8px' }} />
-                    KCC Info
-                  </h4>
-                  <p>Est. 2024</p>
-                  <p>Pre-Nursery to JSS 3</p>
-                </div>
-                <div className="user-status">
-                  <FiLock size={14} style={{ marginRight: '6px' }} />
-                  <small>Logged in as {user?.username}</small>
-                </div>
-              </div>
-            </aside>
-
-            <main 
-              className={`main-content ${sidebarOpen && !isMobile ? 'with-sidebar' : ''}`}
-              onClick={handleContentClick}
-            >
-              <Switch>
-                <Route exact path="/" component={Dashboard} />
-                <Route path="/admissions" component={Admissions} />
-                <Route path="/classes" component={Classes} />
-                <Route path="/teachers" component={Teachers} />
-                <Route path="/academics" component={Academics} />
-                <Route path="/results" component={Results} />
-                <Route path="/settings" component={Settings} />
-                <Redirect to="/" />
-              </Switch>
-            </main>
-          </div>
+            </>
+          )}
         </div>
       </Router>
     </>

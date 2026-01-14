@@ -15,7 +15,49 @@ const ResultsPDFGenerator = ({
 }) => {
   const componentRef = useRef();
 
-  // Function to download as PDF
+  // Function to create a watermark canvas
+  const createWatermarkCanvas = () => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      
+      // Create the watermark image
+      const watermarkImg = new Image();
+      watermarkImg.crossOrigin = 'anonymous';
+      watermarkImg.onload = () => {
+        // Draw the logo
+        ctx.drawImage(watermarkImg, 0, 0, 600, 600);
+        
+        // Make it semi-transparent
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Apply transparency
+        for (let i = 3; i < data.length; i += 4) {
+          data[i] = 50; // 20% opacity (255 * 0.2 = 51)
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      
+      watermarkImg.onerror = () => {
+        // Fallback to text watermark if image fails
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.font = 'bold 80px Times New Roman';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('KCC', 300, 300);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      
+      watermarkImg.src = kccLogo;
+    });
+  };
+
+  // Function to download as PDF with watermark
   const handleDownloadPDF = async () => {
     if (!componentRef.current) {
       console.error('No content to download');
@@ -50,24 +92,23 @@ const ResultsPDFGenerator = ({
       // Clone the element
       const clonedElement = element.cloneNode(true);
       
-      // Fix the logo image source in the cloned element
-      const logoElements = clonedElement.querySelectorAll('img');
-      logoElements.forEach(logoElement => {
-        if (logoElement.alt === 'KCC Logo' || logoElement.src.includes('kcc')) {
-          // Use the imported logo directly
-          logoElement.src = kccLogo;
-          logoElement.crossOrigin = 'anonymous';
-        }
-      });
-      
-      // Fix student photo source if exists
-      const studentPhotos = clonedElement.querySelectorAll('img');
-      studentPhotos.forEach(photo => {
-        if (photo.alt && photo.alt.includes('Student') && studentPhotoUrl) {
-          photo.src = studentPhotoUrl;
-          photo.crossOrigin = 'anonymous';
-        }
-      });
+      // Add watermark overlay to cloned element
+      const watermarkOverlay = document.createElement('div');
+      watermarkOverlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        background-image: url(${kccLogo});
+        background-repeat: repeat;
+        background-size: 200px 200px;
+        background-position: center;
+        opacity: 0.1;
+        mix-blend-mode: multiply;
+      `;
       
       // Apply styles to cloned element
       clonedElement.style.cssText = element.style.cssText;
@@ -77,6 +118,26 @@ const ResultsPDFGenerator = ({
       clonedElement.style.margin = '0';
       clonedElement.style.boxSizing = 'border-box';
       clonedElement.style.background = 'white';
+      clonedElement.style.position = 'relative';
+      
+      // Insert watermark as background
+      clonedElement.style.backgroundImage = `url(${kccLogo})`;
+      clonedElement.style.backgroundRepeat = 'repeat';
+      clonedElement.style.backgroundSize = '300px 300px';
+      clonedElement.style.backgroundPosition = 'center';
+      clonedElement.style.backgroundAttachment = 'fixed';
+      clonedElement.style.backgroundBlendMode = 'multiply';
+      clonedElement.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+      
+      // Make sure content is visible above watermark
+      const allElements = clonedElement.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el.style) {
+          el.style.backgroundColor = 'transparent';
+          el.style.position = 'relative';
+          el.style.zIndex = '1001';
+        }
+      });
       
       tempContainer.appendChild(clonedElement);
       document.body.appendChild(tempContainer);
@@ -104,32 +165,46 @@ const ResultsPDFGenerator = ({
             imageLoaded();
           } else {
             img.onload = imageLoaded;
-            img.onerror = imageLoaded; // Continue even if image fails
+            img.onerror = imageLoaded;
           }
         });
       });
 
-      // Use html2canvas with better options for PDF generation
+      // Create watermark canvas
+      const watermarkDataURL = await createWatermarkCanvas();
+      
+      // Use html2canvas with watermark
       const canvas = await html2canvas(clonedElement, {
         scale: 2,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
-        width: 794, // A4 width in pixels at 96 DPI
+        width: 794,
         height: clonedElement.scrollHeight,
         onclone: (clonedDoc) => {
-          // Ensure all styles are preserved
+          // Add watermark style to cloned document
           const style = document.createElement('style');
           style.innerHTML = `
-            @font-face {
-              font-family: 'Times New Roman';
+            body::before {
+              content: "";
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-image: url(${kccLogo});
+              background-repeat: repeat;
+              background-size: 300px 300px;
+              background-position: center;
+              opacity: 0.08;
+              pointer-events: none;
+              z-index: 0;
             }
             * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
+              position: relative;
+              z-index: 1;
             }
-            body { margin: 0; padding: 0; }
           `;
           clonedDoc.head.appendChild(style);
         }
@@ -138,23 +213,75 @@ const ResultsPDFGenerator = ({
       // Remove temporary container
       document.body.removeChild(tempContainer);
 
+      // Create final canvas with watermark
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height;
+      const finalCtx = finalCanvas.getContext('2d');
+      
+      // Draw original content
+      finalCtx.drawImage(canvas, 0, 0);
+      
+      // Create watermark pattern
+      const watermarkPattern = finalCtx.createPattern(
+        await createPatternCanvas(watermarkDataURL),
+        'repeat'
+      );
+      
+      finalCtx.globalAlpha = 0.08;
+      finalCtx.fillStyle = watermarkPattern;
+      finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+      finalCtx.globalAlpha = 1;
+
       // Calculate PDF dimensions
       const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
       
       // Create PDF
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       // Add image to PDF
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgData = finalCanvas.toDataURL('image/png', 1.0);
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
-      // Save PDF
-      const fileName = `${student?.studentName || 'Student'}_${term}_Term_${academicYear}_Result.pdf`
-        .replace(/\s+/g, '_')
-        .replace(/[^a-zA-Z0-9_]/g, '');
+      // Add additional watermark to PDF for extra safety
+      const watermarkImg = new Image();
+      watermarkImg.onload = () => {
+        // Add watermark at the end
+        pdf.setGState(new pdf.GState({opacity: 0.1}));
+        const pageCount = pdf.internal.getNumberOfPages();
+        
+        for(let i = 1; i <= pageCount; i++) {
+          pdf.setPage(i);
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          
+          // Add watermark in center
+          pdf.addImage(
+            watermarkDataURL,
+            'PNG',
+            pageWidth/2 - 100,
+            pageHeight/2 - 100,
+            200,
+            200
+          );
+          
+          // Add smaller watermarks in corners
+          pdf.addImage(watermarkDataURL, 'PNG', 10, 10, 50, 50);
+          pdf.addImage(watermarkDataURL, 'PNG', pageWidth - 60, pageHeight - 60, 50, 50);
+        }
+        
+        pdf.setGState(new pdf.GState({opacity: 1}));
+        
+        // Save PDF
+        const fileName = `${student?.studentName || 'Student'}_${term}_Term_${academicYear}_Result.pdf`
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9_]/g, '');
+        
+        pdf.save(fileName);
+      };
       
-      pdf.save(fileName);
+      watermarkImg.src = watermarkDataURL;
 
       // Reset button state
       downloadBtn.innerHTML = originalText;
@@ -177,269 +304,204 @@ const ResultsPDFGenerator = ({
     }
   };
 
-  // Direct print functionality
-const handleDirectPrint = () => {
-  if (!componentRef.current) {
-    console.error('No content to print');
-    alert('No content available for printing');
-    return;
-  }
-  
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank');
-  
-  // Get the outer HTML with all styles
-  const content = componentRef.current.outerHTML;
-  
-  // Create print styles that include Tailwind CSS classes
-  const printStyles = `
-    <style>
-      @media print {
-        @page {
-          size: A4;
-          margin: 15mm;
+  // Helper function to create pattern canvas
+  const createPatternCanvas = (imageDataURL) => {
+    return new Promise((resolve) => {
+      const patternCanvas = document.createElement('canvas');
+      patternCanvas.width = 200;
+      patternCanvas.height = 200;
+      const patternCtx = patternCanvas.getContext('2d');
+      
+      const img = new Image();
+      img.onload = () => {
+        patternCtx.drawImage(img, 0, 0, 200, 200);
+        resolve(patternCanvas);
+      };
+      img.src = imageDataURL;
+    });
+  };
+
+  // Direct print functionality with watermark
+  const handleDirectPrint = () => {
+    if (!componentRef.current) {
+      console.error('No content to print');
+      alert('No content available for printing');
+      return;
+    }
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Get the content
+    const content = componentRef.current.innerHTML;
+    
+    // Create print styles with watermark
+    const printStyles = `
+      <style>
+        @media print {
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
+          }
+          .no-print {
+            display: none !important;
+          }
         }
+        
+        /* Watermark styling */
         body {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 15mm;
+          margin: 0 auto;
+          background: white;
           font-family: 'Times New Roman', Times, serif;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          margin: 0;
-          padding: 0;
+          font-size: 12px;
+          position: relative;
         }
-        .no-print {
-          display: none !important;
+        
+        body::before {
+          content: "";
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url(${kccLogo});
+          background-repeat: repeat;
+          background-size: 300px 300px;
+          background-position: center;
+          opacity: 0.08;
+          pointer-events: none;
+          z-index: 0;
         }
+        
         * {
-          box-sizing: border-box;
+          position: relative;
+          z-index: 1;
         }
-      }
-      
-      /* Preserve layout styles */
-      body {
-        width: 210mm;
-        min-height: 297mm;
-        padding: 15mm;
-        margin: 0 auto;
-        background: white;
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12px;
-      }
-      
-      /* Fix for grid layout */
-      .grid {
-        display: grid;
-      }
-      .grid-cols-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .grid-cols-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-      .gap-4 {
-        gap: 1rem;
-      }
-      .gap-6 {
-        gap: 1.5rem;
-      }
-      
-      /* Fix for flex layout */
-      .flex {
-        display: flex;
-      }
-      .justify-between {
-        justify-content: space-between;
-      }
-      .items-start {
-        align-items: flex-start;
-      }
-      .justify-start {
-        justify-content: flex-start;
-      }
-      .justify-end {
-        justify-content: flex-end;
-      }
-      .justify-center {
-        justify-content: center;
-      }
-      .text-center {
-        text-align: center;
-      }
-      .space-y-2 > * + * {
-        margin-top: 0.5rem;
-      }
-      
-      /* Width utilities */
-      .w-full {
-        width: 100%;
-      }
-      .w-1\\/4 {
-        width: 25%;
-      }
-      .flex-1 {
-        flex: 1 1 0%;
-      }
-      
-      /* Padding and margin */
-      .mb-4 {
-        margin-bottom: 1rem;
-      }
-      .mb-6 {
-        margin-bottom: 1.5rem;
-      }
-      .mt-6 {
-        margin-top: 1.5rem;
-      }
-      .pb-3 {
-        padding-bottom: 0.75rem;
-      }
-      .px-1 {
-        padding-left: 0.25rem;
-        padding-right: 0.25rem;
-      }
-      
-      /* Border utilities */
-      .border-b {
-        border-bottom-width: 1px;
-      }
-      .border-blue-800 {
-        border-color: #1e40af;
-      }
-      .border-gray-200 {
-        border-color: #e5e7eb;
-      }
-      .rounded-lg {
-        border-radius: 0.5rem;
-      }
-      
-      /* Overflow */
-      .overflow-hidden {
-        overflow: hidden;
-      }
-      
-      /* Background colors */
-      .bg-white {
-        background-color: white;
-      }
-      .bg-f9fafb {
-        background-color: #f9fafb;
-      }
-      .bg-f3f4f6 {
-        background-color: #f3f4f6;
-      }
-      .bg-f8fafc {
-        background-color: #f8fafc;
-      }
-      .bg-f0f9ff {
-        background-color: #f0f9ff;
-      }
-      .bg-1e40af {
-        background-color: #1e40af;
-      }
-      
-      /* Ensure images display properly */
-      img {
-        max-width: 100%;
-        height: auto;
-      }
-      
-      /* Table styles */
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th, td {
-        padding: 4px 6px;
-        border: 1px solid #d1d5db;
-      }
-      
-      /* Ensure text colors */
-      .text-blue-600 { color: #2563eb; }
-      .text-green-600 { color: #059669; }
-      .text-purple-600 { color: #7c3aed; }
-      .text-gray-600 { color: #4b5563; }
-      .text-gray-700 { color: #374151; }
-      .text-gray-800 { color: #1f2937; }
-      .text-white { color: white; }
-      
-      /* Font weights */
-      .font-bold { font-weight: 700; }
-      .font-semibold { font-weight: 600; }
-      .font-medium { font-weight: 500; }
-      
-      /* Custom styles to match inline styles */
-      [style*="Times New Roman"] {
-        font-family: 'Times New Roman', Times, serif !important;
-      }
-      
-      /* Ensure proper spacing */
-      .space-y-2 > *:not(:first-child) {
-        margin-top: 0.5rem;
-      }
-    </style>
-  `;
-  
-  // Get current date
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-  
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        ${printStyles}
-      </head>
-      <body>
-        ${content}
-        <script>
-          // Wait for all images to load before printing
-          window.onload = function() {
-            const images = document.images;
-            let loadedImages = 0;
-            const totalImages = images.length;
-            
-            if (totalImages === 0) {
-              setTimeout(() => window.print(), 100);
-              return;
-            }
-            
-            Array.from(images).forEach(img => {
-              if (img.complete) {
-                loadedImages++;
-              } else {
-                img.onload = () => {
-                  loadedImages++;
-                  if (loadedImages === totalImages) {
-                    setTimeout(() => window.print(), 100);
-                  }
-                };
-                img.onerror = () => {
-                  loadedImages++;
-                  if (loadedImages === totalImages) {
-                    setTimeout(() => window.print(), 100);
-                  }
-                };
-              }
-            });
-            
-            // Fallback in case all images are already loaded
-            if (loadedImages === totalImages) {
-              setTimeout(() => window.print(), 100);
-            }
-          };
-        </script>
-      </body>
-    </html>
-  `);
-  
-  printWindow.document.close();
-  printWindow.focus();
-};
+        
+        /* Layout fixes */
+        .grid {
+          display: grid !important;
+        }
+        .grid-cols-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .grid-cols-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+        .flex {
+          display: flex !important;
+        }
+        .justify-between {
+          justify-content: space-between !important;
+        }
+        .items-start {
+          align-items: flex-start !important;
+        }
+        .text-center {
+          text-align: center !important;
+        }
+        .w-full {
+          width: 100% !important;
+        }
+        .w-1\\/4 {
+          width: 25% !important;
+        }
+        .flex-1 {
+          flex: 1 1 0% !important;
+        }
+        
+        /* Spacing */
+        .mb-4 { margin-bottom: 1rem !important; }
+        .mb-6 { margin-bottom: 1.5rem !important; }
+        .mt-6 { margin-top: 1.5rem !important; }
+        .pb-3 { padding-bottom: 0.75rem !important; }
+        
+        /* Borders */
+        .border-b { border-bottom-width: 1px !important; }
+        .border-blue-800 { border-color: #1e40af !important; }
+        
+        /* Tables */
+        table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+        }
+        th, td {
+          border: 1px solid #d1d5db !important;
+          padding: 4px 6px !important;
+        }
+        
+        /* Images */
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+        }
+        
+        /* Box sizing */
+        * {
+          box-sizing: border-box !important;
+        }
+        
+        /* Background colors - ensure they're visible over watermark */
+        .bg-white {
+          background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .bg-f9fafb {
+          background-color: rgba(249, 250, 251, 0.95) !important;
+        }
+        .bg-f3f4f6 {
+          background-color: rgba(243, 244, 246, 0.95) !important;
+        }
+        .bg-f8fafc {
+          background-color: rgba(248, 250, 252, 0.95) !important;
+        }
+        .bg-f0f9ff {
+          background-color: rgba(240, 249, 255, 0.95) !important;
+        }
+        .bg-1e40af {
+          background-color: rgba(30, 64, 175, 0.95) !important;
+        }
+      </style>
+    `;
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          ${printStyles}
+        </head>
+        <body>
+          ${content}
+          <script>
+            // Wait for all images to load before printing
+            window.onload = function() {
+              // Add a small delay to ensure watermark renders
+              setTimeout(() => {
+                window.print();
+                // Optional: close after printing
+                // setTimeout(() => window.close(), 1000);
+              }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+  };
 
   // Get current date for report
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -523,130 +585,154 @@ const handleDirectPrint = () => {
           padding: '15mm',
           fontFamily: 'Times New Roman, serif',
           fontSize: '12px',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          position: 'relative',
+          backgroundImage: `url(${kccLogo})`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '300px 300px',
+          backgroundPosition: 'center',
+          backgroundBlendMode: 'multiply',
+          backgroundColor: 'rgba(255, 255, 255, 0.98)'
         }}
       >
-        {/* School Header */}
-        <div className="flex justify-between items-start mb-6 pb-3 border-b border-blue-800">
-          {/* School Logo - LEFT SIDE */}
-          <div className="w-1/4 flex justify-start">
-            <div style={{ width: '70px', height: '70px' }}>
-              {kccLogo ? (
-                <img 
-                  src={kccLogo} 
-                  alt="KCC Logo" 
-                  style={{ 
+        {/* Watermark overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: `url(${kccLogo})`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '300px 300px',
+          backgroundPosition: 'center',
+          opacity: 0.08,
+          pointerEvents: 'none',
+          zIndex: 0
+        }}></div>
+
+        {/* Content wrapper to bring content above watermark */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* School Header */}
+          <div className="flex justify-between items-start mb-6 pb-3 border-b border-blue-800">
+            {/* School Logo - LEFT SIDE */}
+            <div className="w-1/4 flex justify-start">
+              <div style={{ width: '70px', height: '70px' }}>
+                {kccLogo ? (
+                  <img 
+                    src={kccLogo} 
+                    alt="KCC Logo" 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'contain',
+                      display: 'block' 
+                    }}
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      console.error('Failed to load logo:', e);
+                      e.target.style.display = 'none';
+                      e.target.parentNode.innerHTML = `
+                        <div style="width: 100%; height: 100%; background: #dbeafe; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid #93c5fd;">
+                          <span style="color: #1e40af; font-weight: bold; font-size: 16px;">KCC</span>
+                        </div>
+                      `;
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
                     width: '100%', 
                     height: '100%', 
-                    objectFit: 'contain',
-                    display: 'block' 
-                  }}
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    console.error('Failed to load logo:', e);
-                    e.target.style.display = 'none';
-                    e.target.parentNode.innerHTML = `
-                      <div style="width: 100%; height: 100%; background: #dbeafe; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid #93c5fd;">
-                        <span style="color: #1e40af; font-weight: bold; font-size: 16px;">KCC</span>
-                      </div>
-                    `;
-                  }}
-                />
-              ) : (
-                <div style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  background: '#dbeafe', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  borderRadius: '6px', 
-                  border: '2px solid #93c5fd' 
-                }}>
-                  <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '16px' }}>KCC</span>
-                </div>
-              )}
+                    background: '#dbeafe', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderRadius: '6px', 
+                    border: '2px solid #93c5fd' 
+                  }}>
+                    <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '16px' }}>KCC</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* School Name and Details - CENTER */}
+            <div className="flex-1 text-center px-1">
+              <h2 style={{ 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                color: '#1e40af', 
+                marginBottom: '8px',
+                lineHeight: '1.2'
+              }}>
+                KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C)
+              </h2>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                Knowledge is Power
+              </div>
+              <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>
+                Kwanar Yashi along Hayin Dae Muntsira Kano, Nigeria
+              </div>
+              <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic', marginTop: '2px' }}>
+                08065662896 • kamaluddeencomprehensive@gmail.com
+              </div>
+            </div>
+            
+            {/* Student Photo - RIGHT SIDE */}
+            <div className="w-1/4 flex justify-end">
+              <div style={{ 
+                width: '60px', 
+                height: '60px', 
+                border: '2px solid #1e40af',
+                borderRadius: '4px', 
+                overflow: 'hidden', 
+                backgroundColor: '#f3f4f6' 
+              }}>
+                {studentPhotoUrl ? (
+                  <img 
+                    src={studentPhotoUrl} 
+                    alt={student?.studentName || 'Student'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentNode.innerHTML = `
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                          <span style="font-size: 9px; color: #9ca3af;">No Photo</span>
+                        </div>
+                      `;
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <span style={{ fontSize: '9px', color: '#9ca3af' }}>No Photo</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          
-          {/* School Name and Details - CENTER */}
-          <div className="flex-1 text-center px-1">
+
+          {/* Result Sheet Title */}
+          <div className="text-center mb-6">
             <h2 style={{ 
-              fontSize: '20px', 
+              fontSize: '18px', 
               fontWeight: 'bold', 
               color: '#1e40af', 
-              marginBottom: '8px',
-              lineHeight: '1.2'
+              marginBottom: '4px',
+              textTransform: 'uppercase'
             }}>
-              KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C)
+              STUDENT'S RESULT SHEET
             </h2>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-              Knowledge is Power
-            </div>
-            <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>
-              Kwanar Yashi along Hayin Dae Muntsira Kano, Nigeria
-            </div>
-            <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic', marginTop: '2px' }}>
-              08065662896 • kamaluddeencomprehensive@gmail.com
+            <div style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>
+              {term} TERM - {academicYear} ACADEMIC SESSION
             </div>
           </div>
-          
-          {/* Student Photo - RIGHT SIDE */}
-          <div className="w-1/4 flex justify-end">
-            <div style={{ 
-              width: '60px', 
-              height: '60px', 
-              border: '2px solid #1e40af',
-              borderRadius: '4px', 
-              overflow: 'hidden', 
-              backgroundColor: '#f3f4f6' 
-            }}>
-              {studentPhotoUrl ? (
-                <img 
-                  src={studentPhotoUrl} 
-                  alt={student?.studentName || 'Student'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentNode.innerHTML = `
-                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                        <span style="font-size: 9px; color: #9ca3af;">No Photo</span>
-                      </div>
-                    `;
-                  }}
-                />
-              ) : (
-                <div style={{ 
-                  width: '100%', 
-                  height: '100%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center' 
-                }}>
-                  <span style={{ fontSize: '9px', color: '#9ca3af' }}>No Photo</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Result Sheet Title */}
-        <div className="text-center mb-6">
-          <h2 style={{ 
-            fontSize: '18px', 
-            fontWeight: 'bold', 
-            color: '#1e40af', 
-            marginBottom: '4px',
-            textTransform: 'uppercase'
-          }}>
-            STUDENT'S RESULT SHEET
-          </h2>
-          <div style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>
-            {term} TERM - {academicYear} ACADEMIC SESSION
-          </div>
-        </div>
-
         {/* Student Information Section */}
         <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -999,6 +1085,7 @@ const handleDirectPrint = () => {
           <p style={{ marginTop: '2px' }}>KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C) - "Knowledge is power"</p>
           <p style={{ marginTop: '2px' }}>Result generated on: {currentDate}</p>
         </div>
+      </div>
       </div>
     </div>
   );
