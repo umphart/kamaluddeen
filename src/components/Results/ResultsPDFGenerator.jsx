@@ -837,9 +837,13 @@ const handleDirectPrint = () => {
                           padding: '2px 4px',
                           borderRadius: '2px',
                           fontSize: '9px',
-                          ...(parseFloat(subject.caScore || 0) >= 20 ? { backgroundColor: '#d1fae5', color: '#065f46' } :
-                              parseFloat(subject.caScore || 0) >= 15 ? { backgroundColor: '#fef3c7', color: '#92400e' } :
-                              { backgroundColor: '#fee2e2', color: '#991b1b' })
+                          ...(parseFloat(subject.caScore || 0) >= 20 ? {
+                             
+                           } :
+                              parseFloat(subject.caScore || 0) >= 15 ? {  } :
+                              { 
+                                
+                               })
                         }}>
                           {subject.caScore || '0'}
                         </span>
@@ -849,9 +853,9 @@ const handleDirectPrint = () => {
                           padding: '2px 4px',
                           borderRadius: '2px',
                           fontSize: '9px',
-                          ...(parseFloat(subject.examScore || 0) >= 50 ? { backgroundColor: '#d1fae5', color: '#065f46' } :
-                              parseFloat(subject.examScore || 0) >= 35 ? { backgroundColor: '#fef3c7', color: '#92400e' } :
-                              { backgroundColor: '#fee2e2', color: '#991b1b' })
+                          ...(parseFloat(subject.examScore || 0) >= 50 ? { } :
+                              parseFloat(subject.examScore || 0) >= 35 ? {  } :
+                              {  })
                         }}>
                           {subject.examScore || '0'}
                         </span>
@@ -860,10 +864,10 @@ const handleDirectPrint = () => {
                         <span style={{
                           padding: '2px 4px',
                           borderRadius: '2px',
-                          ...(parseFloat(subject.totalScore || 0) >= 80 ? { backgroundColor: '#d1fae5', color: '#065f46' } :
-                              parseFloat(subject.totalScore || 0) >= 60 ? { backgroundColor: '#dbeafe', color: '#1e40af' } :
-                              parseFloat(subject.totalScore || 0) >= 40 ? { backgroundColor: '#fef3c7', color: '#92400e' } :
-                              { backgroundColor: '#fee2e2', color: '#991b1b' })
+                          ...(parseFloat(subject.totalScore || 0) >= 80 ? {  } :
+                              parseFloat(subject.totalScore || 0) >= 60 ? {  } :
+                              parseFloat(subject.totalScore || 0) >= 40 ? { } :
+                              { })
                         }}>
                           {subject.totalScore || '0'}
                         </span>
@@ -874,12 +878,12 @@ const handleDirectPrint = () => {
                           borderRadius: '9999px',
                           fontSize: '10px',
                           fontWeight: 'bold',
-                          ...(subject.grade === 'A' ? { backgroundColor: '#d1fae5', color: '#065f46' } :
-                              subject.grade === 'B' ? { backgroundColor: '#dbeafe', color: '#1e40af' } :
-                              subject.grade === 'C' ? { backgroundColor: '#fef3c7', color: '#92400e' } :
-                              subject.grade === 'D' ? { backgroundColor: '#fed7aa', color: '#9a3412' } :
-                              subject.grade === 'E' ? { backgroundColor: '#e9d5ff', color: '#6b21a8' } :
-                              { backgroundColor: '#fee2e2', color: '#991b1b' })
+                          ...(subject.grade === 'A' ? {  color: '#065f46' } :
+                              subject.grade === 'B' ? {  color: '#1e40af' } :
+                              subject.grade === 'C' ? {  color: '#92400e' } :
+                              subject.grade === 'D' ? {  color: '#9a3412' } :
+                              subject.grade === 'E' ? {  color: '#6b21a8' } :
+                              { color: '#991b1b' })
                         }}>
                           {subject.grade || 'N/A'}
                         </span>
