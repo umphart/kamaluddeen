@@ -1,5 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // useNavigate for v6
 import { FiLock, FiUser, FiLogIn } from 'react-icons/fi';
 import './Login.css';
 import schoolLogo from './kcc.jpeg';
@@ -9,6 +10,7 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate(); // useNavigate for v6
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,10 +19,12 @@ const Login = ({ onLogin }) => {
 
     try {
       const success = await onLogin(username, password);
-      if (!success) {
+      if (success) {
+        // Login successful - navigate to dashboard
+        navigate('/');
+      } else {
         setError('Invalid credentials');
       }
-      // Note: The redirect is handled by App.js state change
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {

@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Switch, Route, Redirect, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   FiGrid, 
@@ -185,12 +185,10 @@ function App() {
         <div className="app">
           {/* Render login page if not authenticated */}
           {!isAuthenticated ? (
-            <Switch>
-              <Route path="/">
-                <Login onLogin={handleLogin} />
-              </Route>
-              <Redirect to="/" />
-            </Switch>
+            <Routes>
+              <Route path="/" element={<Login onLogin={handleLogin} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           ) : (
             <>
               <header className="header">
@@ -359,30 +357,16 @@ function App() {
                   className={`main-content ${sidebarOpen && !isMobile ? 'with-sidebar' : ''}`}
                   onClick={handleContentClick}
                 >
-                  <Switch>
-                    <Route exact path="/">
-                      <Dashboard />
-                    </Route>
-                    <Route path="/admissions">
-                      <Admissions />
-                    </Route>
-                    <Route path="/classes">
-                      <Classes />
-                    </Route>
-                    <Route path="/teachers">
-                      <Teachers />
-                    </Route>
-                    <Route path="/academics">
-                      <Academics />
-                    </Route>
-                    <Route path="/results">
-                      <Results />
-                    </Route>
-                    <Route path="/settings">
-                      <Settings />
-                    </Route>
-                    <Redirect to="/" />
-                  </Switch>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/admissions" element={<Admissions />} />
+                    <Route path="/classes" element={<Classes />} />
+                    <Route path="/teachers" element={<Teachers />} />
+                    <Route path="/academics" element={<Academics />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
                 </main>
               </div>
             </>

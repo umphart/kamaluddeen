@@ -58,251 +58,396 @@ const ResultsPDFGenerator = ({
   };
 
   // Function to download as PDF with watermark
-  const handleDownloadPDF = async () => {
-    if (!componentRef.current) {
-      console.error('No content to download');
-      alert('No content available for download');
-      return;
-    }
+ // Function to download as PDF with centered watermark
+const handleDownloadPDF = async () => {
+  if (!componentRef.current) {
+    console.error('No content to download');
+    alert('No content available for download');
+    return;
+  }
 
-    try {
-      // Show loading state
-      const downloadBtn = document.querySelector('[title="Download as PDF"]');
-      const originalText = downloadBtn.innerHTML;
-      downloadBtn.innerHTML = '<span>Generating PDF...</span>';
-      downloadBtn.disabled = true;
+  try {
+    // Show loading state
+    const downloadBtn = document.querySelector('[title="Download as PDF"]');
+    const originalText = downloadBtn.innerHTML;
+    downloadBtn.innerHTML = '<span>Generating PDF...</span>';
+    downloadBtn.disabled = true;
 
-      // Get the original element
-      const element = componentRef.current;
-      
-      // Create a temporary container for cloning
-      const tempContainer = document.createElement('div');
-      tempContainer.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 210mm;
-        min-height: 297mm;
-        background: white;
-        z-index: 9999;
-        opacity: 0;
-        pointer-events: none;
-      `;
-      
-      // Clone the element
-      const clonedElement = element.cloneNode(true);
-      
-      // Add watermark overlay to cloned element
-      const watermarkOverlay = document.createElement('div');
-      watermarkOverlay.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 1000;
-        background-image: url(${kccLogo});
-        background-repeat: repeat;
-        background-size: 200px 200px;
-        background-position: center;
-        opacity: 0.1;
-        mix-blend-mode: multiply;
-      `;
-      
-      // Apply styles to cloned element
-      clonedElement.style.cssText = element.style.cssText;
-      clonedElement.style.width = '210mm';
-      clonedElement.style.minHeight = '297mm';
-      clonedElement.style.padding = '15mm';
-      clonedElement.style.margin = '0';
-      clonedElement.style.boxSizing = 'border-box';
-      clonedElement.style.background = 'white';
-      clonedElement.style.position = 'relative';
-      
-      // Insert watermark as background
-      clonedElement.style.backgroundImage = `url(${kccLogo})`;
-      clonedElement.style.backgroundRepeat = 'repeat';
-      clonedElement.style.backgroundSize = '300px 300px';
-      clonedElement.style.backgroundPosition = 'center';
-      clonedElement.style.backgroundAttachment = 'fixed';
-      clonedElement.style.backgroundBlendMode = 'multiply';
-      clonedElement.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-      
-      // Make sure content is visible above watermark
-      const allElements = clonedElement.querySelectorAll('*');
-      allElements.forEach(el => {
-        if (el.style) {
-          el.style.backgroundColor = 'transparent';
-          el.style.position = 'relative';
-          el.style.zIndex = '1001';
-        }
-      });
-      
-      tempContainer.appendChild(clonedElement);
-      document.body.appendChild(tempContainer);
+    // Get the original element
+    const element = componentRef.current;
+    
+    // Create a temporary container for cloning
+    const tempContainer = document.createElement('div');
+    tempContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+    `;
+    
+    // Clone the element
+    const clonedElement = element.cloneNode(true);
+    
+    // Apply styles to cloned element
+    clonedElement.style.cssText = element.style.cssText;
+    clonedElement.style.width = '210mm';
+    clonedElement.style.minHeight = '297mm';
+    clonedElement.style.padding = '15mm';
+    clonedElement.style.margin = '0';
+    clonedElement.style.boxSizing = 'border-box';
+    clonedElement.style.background = 'white';
+    clonedElement.style.position = 'relative';
+    
+    tempContainer.appendChild(clonedElement);
+    document.body.appendChild(tempContainer);
 
-      // Wait for images to load
-      await new Promise((resolve) => {
-        const images = clonedElement.getElementsByTagName('img');
-        let loadedCount = 0;
-        const totalImages = images.length;
-        
-        if (totalImages === 0) {
-          resolve();
-          return;
-        }
-        
-        const imageLoaded = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) {
-            resolve();
-          }
-        };
-        
-        Array.from(images).forEach((img) => {
-          if (img.complete) {
-            imageLoaded();
-          } else {
-            img.onload = imageLoaded;
-            img.onerror = imageLoaded;
-          }
-        });
-      });
-
-      // Create watermark canvas
-      const watermarkDataURL = await createWatermarkCanvas();
+    // Wait for images to load
+    await new Promise((resolve) => {
+      const images = clonedElement.getElementsByTagName('img');
+      let loadedCount = 0;
+      const totalImages = images.length;
       
-      // Use html2canvas with watermark
-      const canvas = await html2canvas(clonedElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-        width: 794,
-        height: clonedElement.scrollHeight,
-        onclone: (clonedDoc) => {
-          // Add watermark style to cloned document
-          const style = document.createElement('style');
-          style.innerHTML = `
-            body::before {
-              content: "";
-              position: fixed;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background-image: url(${kccLogo});
-              background-repeat: repeat;
-              background-size: 300px 300px;
-              background-position: center;
-              opacity: 0.08;
-              pointer-events: none;
-              z-index: 0;
-            }
-            * {
-              position: relative;
-              z-index: 1;
-            }
-          `;
-          clonedDoc.head.appendChild(style);
-        }
-      });
-
-      // Remove temporary container
-      document.body.removeChild(tempContainer);
-
-      // Create final canvas with watermark
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = canvas.width;
-      finalCanvas.height = canvas.height;
-      const finalCtx = finalCanvas.getContext('2d');
-      
-      // Draw original content
-      finalCtx.drawImage(canvas, 0, 0);
-      
-      // Create watermark pattern
-      const watermarkPattern = finalCtx.createPattern(
-        await createPatternCanvas(watermarkDataURL),
-        'repeat'
-      );
-      
-      finalCtx.globalAlpha = 0.08;
-      finalCtx.fillStyle = watermarkPattern;
-      finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-      finalCtx.globalAlpha = 1;
-
-      // Calculate PDF dimensions
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
-      
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      // Add image to PDF
-      const imgData = finalCanvas.toDataURL('image/png', 1.0);
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      // Add additional watermark to PDF for extra safety
-      const watermarkImg = new Image();
-      watermarkImg.onload = () => {
-        // Add watermark at the end
-        pdf.setGState(new pdf.GState({opacity: 0.1}));
-        const pageCount = pdf.internal.getNumberOfPages();
-        
-        for(let i = 1; i <= pageCount; i++) {
-          pdf.setPage(i);
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          
-          // Add watermark in center
-          pdf.addImage(
-            watermarkDataURL,
-            'PNG',
-            pageWidth/2 - 100,
-            pageHeight/2 - 100,
-            200,
-            200
-          );
-          
-          // Add smaller watermarks in corners
-          pdf.addImage(watermarkDataURL, 'PNG', 10, 10, 50, 50);
-          pdf.addImage(watermarkDataURL, 'PNG', pageWidth - 60, pageHeight - 60, 50, 50);
-        }
-        
-        pdf.setGState(new pdf.GState({opacity: 1}));
-        
-        // Save PDF
-        const fileName = `${student?.studentName || 'Student'}_${term}_Term_${academicYear}_Result.pdf`
-          .replace(/\s+/g, '_')
-          .replace(/[^a-zA-Z0-9_]/g, '');
-        
-        pdf.save(fileName);
-      };
-      
-      watermarkImg.src = watermarkDataURL;
-
-      // Reset button state
-      downloadBtn.innerHTML = originalText;
-      downloadBtn.disabled = false;
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
-      
-      // Reset button state on error
-      const downloadBtn = document.querySelector('[title="Download as PDF"]');
-      if (downloadBtn) {
-        downloadBtn.innerHTML = '<FiDownload />Download PDF';
-        downloadBtn.disabled = false;
+      if (totalImages === 0) {
+        resolve();
+        return;
       }
       
-      // Clean up any temporary elements
-      const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 9999"]');
-      tempElements.forEach(el => document.body.removeChild(el));
+      const imageLoaded = () => {
+        loadedCount++;
+        if (loadedCount === totalImages) {
+          resolve();
+        }
+      };
+      
+      Array.from(images).forEach((img) => {
+        if (img.complete) {
+          imageLoaded();
+        } else {
+          img.onload = imageLoaded;
+          img.onerror = imageLoaded;
+        }
+      });
+    });
+
+    // Use html2canvas to capture the content
+    const canvas = await html2canvas(clonedElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: 794,
+      height: clonedElement.scrollHeight,
+    });
+
+    // Remove temporary container
+    document.body.removeChild(tempContainer);
+
+    // Create a new canvas with watermark
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = canvas.width;
+    finalCanvas.height = canvas.height;
+    const ctx = finalCanvas.getContext('2d');
+    
+    // Draw the original content
+    ctx.drawImage(canvas, 0, 0);
+    
+    // Create watermark image
+    const watermarkImg = new Image();
+    watermarkImg.crossOrigin = 'anonymous';
+    
+    await new Promise((resolve) => {
+      watermarkImg.onload = () => {
+        // Calculate position for centered watermark
+        const watermarkWidth = finalCanvas.width * 0.5; // 50% of canvas width
+        const watermarkHeight = (watermarkImg.height * watermarkWidth) / watermarkImg.width;
+        const x = (finalCanvas.width - watermarkWidth) / 2;
+        const y = (finalCanvas.height - watermarkHeight) / 2;
+        
+        // Set transparency
+        ctx.globalAlpha = 0.1; // 10% opacity
+        
+        // Draw watermark
+        ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight);
+        
+        // Reset opacity
+        ctx.globalAlpha = 1;
+        resolve();
+      };
+      
+      watermarkImg.onerror = () => {
+        // Fallback: draw text watermark
+        ctx.globalAlpha = 0.1;
+        ctx.font = 'bold 100px Times New Roman';
+        ctx.fillStyle = '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('KCC', finalCanvas.width / 2, finalCanvas.height / 2);
+        ctx.globalAlpha = 1;
+        resolve();
+      };
+      
+      watermarkImg.src = kccLogo;
+    });
+
+    // Calculate PDF dimensions
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
+    
+    // Create PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    // Add image to PDF
+    const imgData = finalCanvas.toDataURL('image/png', 1.0);
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    
+    // Add additional centered watermark to PDF
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    // Set transparency for watermark
+    pdf.setGState(new pdf.GState({opacity: 0.1}));
+    
+    // Add watermark in center of page
+    const pdfWatermarkImg = new Image();
+    pdfWatermarkImg.onload = () => {
+      const watermarkPDFWidth = pageWidth * 0.5;
+      const watermarkPDFHeight = (pdfWatermarkImg.height * watermarkPDFWidth) / pdfWatermarkImg.width;
+      const watermarkX = (pageWidth - watermarkPDFWidth) / 2;
+      const watermarkY = (pageHeight - watermarkPDFHeight) / 2;
+      
+      pdf.addImage(
+        kccLogo,
+        'PNG',
+        watermarkX,
+        watermarkY,
+        watermarkPDFWidth,
+        watermarkPDFHeight
+      );
+      
+      // Reset opacity
+      pdf.setGState(new pdf.GState({opacity: 1}));
+      
+      // Save PDF
+      const fileName = `${student?.studentName || 'Student'}_${term}_Term_${academicYear}_Result.pdf`
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_]/g, '');
+      
+      pdf.save(fileName);
+    };
+    
+    pdfWatermarkImg.src = kccLogo;
+
+    // Reset button state
+    downloadBtn.innerHTML = originalText;
+    downloadBtn.disabled = false;
+
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+    
+    // Reset button state on error
+    const downloadBtn = document.querySelector('[title="Download as PDF"]');
+    if (downloadBtn) {
+      downloadBtn.innerHTML = '<FiDownload />Download PDF';
+      downloadBtn.disabled = false;
     }
-  };
+    
+    // Clean up any temporary elements
+    const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 9999"]');
+    tempElements.forEach(el => document.body.removeChild(el));
+  }
+};
+
+// Direct print functionality with centered watermark
+const handleDirectPrint = () => {
+  if (!componentRef.current) {
+    console.error('No content to print');
+    alert('No content available for printing');
+    return;
+  }
+  
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank');
+  
+  // Get the content
+  const content = componentRef.current.innerHTML;
+  
+  // Create print styles with centered watermark
+  const printStyles = `
+    <style>
+      @media print {
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+        body {
+          font-family: 'Times New Roman', Times, serif;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          margin: 0;
+          padding: 0;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+      
+      /* Main container */
+      body {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 15mm;
+        margin: 0 auto;
+        background: white;
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 12px;
+        position: relative;
+      }
+      
+      /* Centered watermark */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50%;
+        height: auto;
+        aspect-ratio: 1/1;
+        background-image: url(${kccLogo});
+        background-repeat: no-repeat;
+        background-size: contain;
+        background-position: center;
+        opacity: 0.1;
+        pointer-events: none;
+        z-index: 0;
+      }
+      
+      /* Ensure content is above watermark */
+      .content-wrapper {
+        position: relative;
+        z-index: 1;
+      }
+      
+      /* Layout fixes */
+      .grid {
+        display: grid !important;
+      }
+      .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+      .grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      }
+      .flex {
+        display: flex !important;
+      }
+      .justify-between {
+        justify-content: space-between !important;
+      }
+      .items-start {
+        align-items: flex-start !important;
+      }
+      .text-center {
+        text-align: center !important;
+      }
+      .w-full {
+        width: 100% !important;
+      }
+      .w-1\\/4 {
+        width: 25% !important;
+      }
+      .flex-1 {
+        flex: 1 1 0% !important;
+      }
+      
+      /* Spacing */
+      .mb-4 { margin-bottom: 1rem !important; }
+      .mb-6 { margin-bottom: 1.5rem !important; }
+      .mt-6 { margin-top: 1.5rem !important; }
+      .pb-3 { padding-bottom: 0.75rem !important; }
+      
+      /* Borders */
+      .border-b { border-bottom-width: 1px !important; }
+      .border-blue-800 { border-color: #1e40af !important; }
+      
+      /* Tables */
+      table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      th, td {
+        border: 1px solid #d1d5db !important;
+        padding: 4px 6px !important;
+      }
+      
+      /* Images */
+      img {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+      
+      /* Box sizing */
+      * {
+        box-sizing: border-box !important;
+      }
+      
+      /* Background colors - ensure they're visible */
+      .bg-white {
+        background-color: white !important;
+      }
+      .bg-f9fafb {
+        background-color: #f9fafb !important;
+      }
+      .bg-f3f4f6 {
+        background-color: #f3f4f6 !important;
+      }
+      .bg-f8fafc {
+        background-color: #f8fafb !important;
+      }
+      .bg-f0f9ff {
+        background-color: #f0f9ff !important;
+      }
+      .bg-1e40af {
+        background-color: #1e40af !important;
+      }
+    </style>
+  `;
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        ${printStyles}
+      </head>
+      <body>
+        <div class="content-wrapper">
+          ${content}
+        </div>
+        <script>
+          // Wait for all images to load before printing
+          window.onload = function() {
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.focus();
+};
 
   // Helper function to create pattern canvas
   const createPatternCanvas = (imageDataURL) => {
@@ -321,187 +466,6 @@ const ResultsPDFGenerator = ({
     });
   };
 
-  // Direct print functionality with watermark
-  const handleDirectPrint = () => {
-    if (!componentRef.current) {
-      console.error('No content to print');
-      alert('No content available for printing');
-      return;
-    }
-    
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    
-    // Get the content
-    const content = componentRef.current.innerHTML;
-    
-    // Create print styles with watermark
-    const printStyles = `
-      <style>
-        @media print {
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          body {
-            font-family: 'Times New Roman', Times, serif;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            margin: 0;
-            padding: 0;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-        
-        /* Watermark styling */
-        body {
-          width: 210mm;
-          min-height: 297mm;
-          padding: 15mm;
-          margin: 0 auto;
-          background: white;
-          font-family: 'Times New Roman', Times, serif;
-          font-size: 12px;
-          position: relative;
-        }
-        
-        body::before {
-          content: "";
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-image: url(${kccLogo});
-          background-repeat: repeat;
-          background-size: 300px 300px;
-          background-position: center;
-          opacity: 0.08;
-          pointer-events: none;
-          z-index: 0;
-        }
-        
-        * {
-          position: relative;
-          z-index: 1;
-        }
-        
-        /* Layout fixes */
-        .grid {
-          display: grid !important;
-        }
-        .grid-cols-2 {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        }
-        .grid-cols-3 {
-          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        }
-        .flex {
-          display: flex !important;
-        }
-        .justify-between {
-          justify-content: space-between !important;
-        }
-        .items-start {
-          align-items: flex-start !important;
-        }
-        .text-center {
-          text-align: center !important;
-        }
-        .w-full {
-          width: 100% !important;
-        }
-        .w-1\\/4 {
-          width: 25% !important;
-        }
-        .flex-1 {
-          flex: 1 1 0% !important;
-        }
-        
-        /* Spacing */
-        .mb-4 { margin-bottom: 1rem !important; }
-        .mb-6 { margin-bottom: 1.5rem !important; }
-        .mt-6 { margin-top: 1.5rem !important; }
-        .pb-3 { padding-bottom: 0.75rem !important; }
-        
-        /* Borders */
-        .border-b { border-bottom-width: 1px !important; }
-        .border-blue-800 { border-color: #1e40af !important; }
-        
-        /* Tables */
-        table {
-          width: 100% !important;
-          border-collapse: collapse !important;
-        }
-        th, td {
-          border: 1px solid #d1d5db !important;
-          padding: 4px 6px !important;
-        }
-        
-        /* Images */
-        img {
-          max-width: 100% !important;
-          height: auto !important;
-        }
-        
-        /* Box sizing */
-        * {
-          box-sizing: border-box !important;
-        }
-        
-        /* Background colors - ensure they're visible over watermark */
-        .bg-white {
-          background-color: rgba(255, 255, 255, 0.95) !important;
-        }
-        .bg-f9fafb {
-          background-color: rgba(249, 250, 251, 0.95) !important;
-        }
-        .bg-f3f4f6 {
-          background-color: rgba(243, 244, 246, 0.95) !important;
-        }
-        .bg-f8fafc {
-          background-color: rgba(248, 250, 252, 0.95) !important;
-        }
-        .bg-f0f9ff {
-          background-color: rgba(240, 249, 255, 0.95) !important;
-        }
-        .bg-1e40af {
-          background-color: rgba(30, 64, 175, 0.95) !important;
-        }
-      </style>
-    `;
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          ${printStyles}
-        </head>
-        <body>
-          ${content}
-          <script>
-            // Wait for all images to load before printing
-            window.onload = function() {
-              // Add a small delay to ensure watermark renders
-              setTimeout(() => {
-                window.print();
-                // Optional: close after printing
-                // setTimeout(() => window.close(), 1000);
-              }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-  };
 
   // Get current date for report
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -552,68 +516,65 @@ const ResultsPDFGenerator = ({
     { grade: 'F', score: '0 - 39', remark: 'Fail' }
   ];
 
-  return (
-    <div className="w-full">
-      {/* Action Buttons */}
-      <div className="flex gap-2 mb-4 no-print">
-        <button
-          onClick={handleDownloadPDF}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200"
-          title="Download as PDF"
-        >
-          <FiDownload />
-          Download PDF
-        </button>
-        <button
-          onClick={handleDirectPrint}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-all duration-200"
-          title="Print Result"
-        >
-          <FiPrinter />
-          Print Result
-        </button>
-      </div>
-
-      {/* PDF Content - Optimized for A4 */}
-      <div 
-        ref={componentRef} 
-        className="bg-white border border-gray-200 rounded-lg"
-        style={{ 
-          width: '210mm',
-          minHeight: '297mm',
-          margin: '0 auto',
-          padding: '15mm',
-          fontFamily: 'Times New Roman, serif',
-          fontSize: '12px',
-          boxSizing: 'border-box',
-          position: 'relative',
-          backgroundImage: `url(${kccLogo})`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '300px 300px',
-          backgroundPosition: 'center',
-          backgroundBlendMode: 'multiply',
-          backgroundColor: 'rgba(255, 255, 255, 0.98)'
-        }}
+ return (
+  <div className="w-full">
+    {/* Action Buttons */}
+    <div className="flex gap-2 mb-4 no-print">
+      <button
+        onClick={handleDownloadPDF}
+        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200"
+        title="Download as PDF"
       >
-        {/* Watermark overlay */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: `url(${kccLogo})`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '300px 300px',
-          backgroundPosition: 'center',
-          opacity: 0.08,
-          pointerEvents: 'none',
-          zIndex: 0
-        }}></div>
+        <FiDownload />
+        Download PDF
+      </button>
+      <button
+        onClick={handleDirectPrint}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-all duration-200"
+        title="Print Result"
+      >
+        <FiPrinter />
+        Print Result
+      </button>
+    </div>
 
-        {/* Content wrapper to bring content above watermark */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* School Header */}
+    {/* PDF Content - Optimized for A4 */}
+    <div 
+      ref={componentRef} 
+      className="bg-white border border-gray-200 rounded-lg"
+      style={{ 
+        width: '210mm',
+        minHeight: '297mm',
+        margin: '0 auto',
+        padding: '15mm',
+        fontFamily: 'Times New Roman, serif',
+        fontSize: '12px',
+        boxSizing: 'border-box',
+        position: 'relative'
+      }}
+    >
+      {/* Centered watermark overlay */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '50%',
+        height: '50%',
+        backgroundImage: `url(${kccLogo})`,
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        opacity: 0.4,
+        pointerEvents: 'none',
+        zIndex: 0
+      }}></div>
+
+      {/* Content wrapper to bring content above watermark */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Rest of your content goes here */}
+        {/* School Header */}
+   
           <div className="flex justify-between items-start mb-6 pb-3 border-b border-blue-800">
             {/* School Logo - LEFT SIDE */}
             <div className="w-1/4 flex justify-start">
