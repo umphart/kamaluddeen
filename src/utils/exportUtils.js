@@ -174,26 +174,28 @@ export const exportStudentsToPDF = (students, className = null) => {
         body {
           font-family: 'Inter', sans-serif;
           margin: 0;
-          padding: 20px;
+          padding: 10px; /* Reduced padding */
           color: #333;
           background: white;
         }
         
-        .header {
+        .header-container {
+          width: 100%;
           display: flex;
           align-items: center;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 3px solid #4F46E5;
+          margin-bottom: 15px; /* Reduced margin */
+          padding-bottom: 10px; /* Reduced padding */
+          border-bottom: 2px solid #4F46E5; /* Thinner border */
         }
         
         .logo-container {
-          width: 120px;
-          height: 120px;
-          margin-right: 20px;
+          flex: 0 0 auto;
+          width: 100px; /* Reduced logo size */
+          height: 100px; /* Reduced logo size */
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start; /* Align logo to left */
+          margin-right: 15px; /* Reduced margin */
         }
         
         .logo {
@@ -202,76 +204,84 @@ export const exportStudentsToPDF = (students, className = null) => {
           object-fit: contain;
         }
         
-        .school-info {
+        .school-info-container {
           flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center; /* Center school info */
+          justify-content: center;
+          text-align: center;
+          margin: 0;
+          padding: 0;
         }
         
         .school-name {
-          font-size: 24px;
+          font-size: 20px; /* Reduced font size */
           font-weight: 700;
           color: #4F46E5;
-          margin-bottom: 5px;
+          margin-bottom: 3px; /* Reduced margin */
+          line-height: 1.2;
         }
         
         .school-motto {
-          font-size: 14px;
+          font-size: 13px; /* Reduced font size */
           color: #666;
-          margin-bottom: 10px;
+          margin-bottom: 6px; /* Reduced margin */
           font-style: italic;
         }
         
         .school-details {
-          font-size: 12px;
+          font-size: 11px; /* Reduced font size */
           color: #666;
-          margin-bottom: 5px;
-          line-height: 1.4;
+          margin: 0;
+          line-height: 1.3; /* Tighter line height */
         }
         
         .report-title {
-          font-size: 20px;
+          font-size: 18px; /* Reduced font size */
           font-weight: 600;
-          margin: 20px 0;
+          margin: 10px 0; /* Reduced margin */
           color: #333;
           text-align: center;
-          padding: 10px;
+          padding: 8px; /* Reduced padding */
           background: #f8fafc;
-          border-radius: 8px;
+          border-radius: 6px;
         }
         
         .report-info {
-          font-size: 12px;
+          font-size: 11px; /* Reduced font size */
           color: #666;
-          margin-bottom: 20px;
+          margin-bottom: 15px; /* Reduced margin */
           text-align: center;
         }
         
         .summary-box {
           background: #f8fafc;
-          padding: 15px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          border-left: 4px solid #4F46E5;
-          font-size: 13px;
+          padding: 12px; /* Reduced padding */
+          border-radius: 6px;
+          margin-bottom: 15px; /* Reduced margin */
+          border-left: 3px solid #4F46E5; /* Thinner border */
+          font-size: 12px; /* Reduced font size */
         }
         
         table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 11px;
-          margin-top: 20px;
+          font-size: 10px; /* Reduced font size */
+          margin-top: 15px; /* Reduced margin */
         }
         
         th {
           background: #4F46E5;
           color: white;
-          padding: 10px;
+          padding: 8px; /* Reduced padding */
           text-align: left;
           font-weight: 600;
           border: 1px solid #e5e7eb;
         }
         
         td {
-          padding: 8px 10px;
+          padding: 6px 8px; /* Reduced padding */
           border: 1px solid #e5e7eb;
         }
         
@@ -280,9 +290,9 @@ export const exportStudentsToPDF = (students, className = null) => {
         }
         
         .badge {
-          padding: 3px 8px;
-          border-radius: 4px;
-          font-size: 10px;
+          padding: 2px 6px; /* Reduced padding */
+          border-radius: 3px;
+          font-size: 9px; /* Reduced font size */
           font-weight: 500;
           display: inline-block;
         }
@@ -292,18 +302,18 @@ export const exportStudentsToPDF = (students, className = null) => {
         .badge-graduated { background: #dbeafe; color: #1e40af; }
         
         .footer {
-          margin-top: 40px;
-          padding-top: 20px;
-          border-top: 2px solid #e5e7eb;
-          font-size: 11px;
+          margin-top: 20px; /* Reduced margin */
+          padding-top: 10px; /* Reduced padding */
+          border-top: 1px solid #e5e7eb; /* Thinner border */
+          font-size: 10px; /* Reduced font size */
           color: #666;
           text-align: center;
         }
         
         .footer-contact {
-          font-size: 10px;
+          font-size: 9px; /* Reduced font size */
           color: #4F46E5;
-          margin-top: 5px;
+          margin-top: 3px; /* Reduced margin */
         }
         
         .page-break {
@@ -311,9 +321,9 @@ export const exportStudentsToPDF = (students, className = null) => {
         }
         
         @media print {
-          body { margin: 0; padding: 10px; }
+          body { margin: 0; padding: 5px; }
           .no-print { display: none; }
-          .header { page-break-inside: avoid; }
+          .header-container { page-break-inside: avoid; }
           table { page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           .footer { position: fixed; bottom: 0; width: 100%; }
@@ -321,11 +331,11 @@ export const exportStudentsToPDF = (students, className = null) => {
       </style>
     </head>
     <body>
-      <div class="header">
+      <div class="header-container">
         <div class="logo-container">
           <img src="${getLogoDataURL()}" alt="KCC Logo" class="logo" />
         </div>
-        <div class="school-info">
+        <div class="school-info-container">
           <div class="school-name">${SCHOOL_INFO.name}</div>
           <div class="school-motto">"${SCHOOL_INFO.motto}"</div>
           <div class="school-details">
@@ -345,14 +355,6 @@ export const exportStudentsToPDF = (students, className = null) => {
         ${className ? ` | <strong>Class:</strong> ${className}` : ''}
       </div>
       
-      <div class="summary-box">
-        <strong>Levels Offered:</strong><br>
-        • Pre-Nursery (PN)<br>
-        • Nursery 1-2 (NU)<br>
-        • Primary 1-4 (PR)<br>
-        • JSS 1-3 (JS)
-      </div>
-      
       <table>
         <thead>
           <tr>
@@ -365,7 +367,6 @@ export const exportStudentsToPDF = (students, className = null) => {
             <th>Parent Name</th>
             <th>Parent Phone</th>
             <th>Admission Date</th>
-            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -380,11 +381,6 @@ export const exportStudentsToPDF = (students, className = null) => {
               <td>${student.parentName || ''}</td>
               <td>${student.parentPhone || ''}</td>
               <td>${formatDate(student.admissionDate)}</td>
-              <td>
-                <span class="badge badge-${(student.status || 'active').toLowerCase()}">
-                  ${student.status || 'Active'}
-                </span>
-              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -398,17 +394,17 @@ export const exportStudentsToPDF = (students, className = null) => {
         </div>
       </div>
       
-      <div class="no-print" style="margin-top: 30px; text-align: center;">
+      <div class="no-print" style="margin-top: 15px; text-align: center;">
         <button onclick="window.print()" style="
           background: #4F46E5;
           color: white;
           border: none;
-          padding: 12px 24px;
-          border-radius: 6px;
+          padding: 10px 20px; /* Reduced padding */
+          border-radius: 5px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 13px; /* Reduced font size */
           font-weight: 600;
-          margin: 5px;
+          margin: 3px; /* Reduced margin */
         ">
           🖨️ Print Document
         </button>
@@ -416,12 +412,12 @@ export const exportStudentsToPDF = (students, className = null) => {
           background: #6b7280;
           color: white;
           border: none;
-          padding: 12px 24px;
-          border-radius: 6px;
+          padding: 10px 20px; /* Reduced padding */
+          border-radius: 5px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 13px; /* Reduced font size */
           font-weight: 600;
-          margin: 5px;
+          margin: 3px; /* Reduced margin */
         ">
           ✕ Close Window
         </button>

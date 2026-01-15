@@ -15,223 +15,200 @@ const ResultsPDFGenerator = ({
 }) => {
   const componentRef = useRef();
 
-  // Function to create a watermark canvas
-  const createWatermarkCanvas = () => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 600;
-      canvas.height = 600;
-      const ctx = canvas.getContext('2d');
+  // Function to download as PDF
+  const handleDownloadPDF = async () => {
+    if (!componentRef.current) {
+      console.error('No content to download');
+      alert('No content available for download');
+      return;
+    }
+
+    try {
+      // Show loading state
+      const downloadBtn = document.querySelector('[title="Download as PDF"]');
+      const originalText = downloadBtn.innerHTML;
+      downloadBtn.innerHTML = '<span>Generating PDF...</span>';
+      downloadBtn.disabled = true;
+
+      // Get the original element
+      const element = componentRef.current;
       
-      // Create the watermark image
-      const watermarkImg = new Image();
-      watermarkImg.crossOrigin = 'anonymous';
-      watermarkImg.onload = () => {
-        // Draw the logo
-        ctx.drawImage(watermarkImg, 0, 0, 600, 600);
+      // Create a temporary container for cloning
+      const tempContainer = document.createElement('div');
+      tempContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 210mm;
+        min-height: 297mm;
+        background: white;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+      `;
+      
+      // Clone the element
+      const clonedElement = element.cloneNode(true);
+      
+      // Apply optimized styles for PDF
+      clonedElement.style.cssText = `
+        width: 210mm !important;
+        min-height: 297mm !important;
+        padding: 10mm 8mm !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        position: relative !important;
+        font-family: 'Times New Roman', serif !important;
+        font-size: 10px !important;
+      `;
+      
+      // Adjust inner elements for better PDF rendering
+      clonedElement.querySelectorAll('*').forEach(el => {
+        // Remove any max-width constraints
+        el.style.maxWidth = 'none !important';
+        el.style.overflow = 'visible !important';
         
-        // Make it semi-transparent
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        // Apply transparency
-        for (let i = 3; i < data.length; i += 4) {
-          data[i] = 50; // 20% opacity (255 * 0.2 = 51)
+        // Adjust tables for PDF
+        if (el.tagName === 'TABLE') {
+          el.style.width = '100% !important';
+          el.style.fontSize = '9px !important';
+          el.style.borderCollapse = 'collapse !important';
         }
         
-        ctx.putImageData(imageData, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      
-      watermarkImg.onerror = () => {
-        // Fallback to text watermark if image fails
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-        ctx.font = 'bold 80px Times New Roman';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('KCC', 300, 300);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      
-      watermarkImg.src = kccLogo;
-    });
-  };
-
-  // Function to download as PDF with watermark
- // Function to download as PDF with centered watermark
-const handleDownloadPDF = async () => {
-  if (!componentRef.current) {
-    console.error('No content to download');
-    alert('No content available for download');
-    return;
-  }
-
-  try {
-    // Show loading state
-    const downloadBtn = document.querySelector('[title="Download as PDF"]');
-    const originalText = downloadBtn.innerHTML;
-    downloadBtn.innerHTML = '<span>Generating PDF...</span>';
-    downloadBtn.disabled = true;
-
-    // Get the original element
-    const element = componentRef.current;
-    
-    // Create a temporary container for cloning
-    const tempContainer = document.createElement('div');
-    tempContainer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 210mm;
-      min-height: 297mm;
-      background: white;
-      z-index: 9999;
-      opacity: 0;
-      pointer-events: none;
-    `;
-    
-    // Clone the element
-    const clonedElement = element.cloneNode(true);
-    
-    // Apply styles to cloned element
-    clonedElement.style.cssText = element.style.cssText;
-    clonedElement.style.width = '210mm';
-    clonedElement.style.minHeight = '297mm';
-    clonedElement.style.padding = '15mm';
-    clonedElement.style.margin = '0';
-    clonedElement.style.boxSizing = 'border-box';
-    clonedElement.style.background = 'white';
-    clonedElement.style.position = 'relative';
-    
-    tempContainer.appendChild(clonedElement);
-    document.body.appendChild(tempContainer);
-
-    // Wait for images to load
-    await new Promise((resolve) => {
-      const images = clonedElement.getElementsByTagName('img');
-      let loadedCount = 0;
-      const totalImages = images.length;
-      
-      if (totalImages === 0) {
-        resolve();
-        return;
-      }
-      
-      const imageLoaded = () => {
-        loadedCount++;
-        if (loadedCount === totalImages) {
-          resolve();
+        // Adjust table cells
+        if (el.tagName === 'TD' || el.tagName === 'TH') {
+          el.style.padding = '2px 3px !important';
+          el.style.fontSize = '8px !important';
         }
-      };
-      
-      Array.from(images).forEach((img) => {
-        if (img.complete) {
-          imageLoaded();
-        } else {
-          img.onload = imageLoaded;
-          img.onerror = imageLoaded;
+        
+        // Adjust headers
+        if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
+          el.style.margin = '5px 0 !important';
+          el.style.fontSize = el.tagName === 'H1' ? '16px !important' : 
+                             el.tagName === 'H2' ? '14px !important' : 
+                             '12px !important';
         }
       });
-    });
+      
+      tempContainer.appendChild(clonedElement);
+      document.body.appendChild(tempContainer);
 
-    // Use html2canvas to capture the content
-    const canvas = await html2canvas(clonedElement, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      logging: false,
-      width: 794,
-      height: clonedElement.scrollHeight,
-    });
-
-    // Remove temporary container
-    document.body.removeChild(tempContainer);
-
-    // Create a new canvas with watermark
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = canvas.width;
-    finalCanvas.height = canvas.height;
-    const ctx = finalCanvas.getContext('2d');
-    
-    // Draw the original content
-    ctx.drawImage(canvas, 0, 0);
-    
-    // Create watermark image
-    const watermarkImg = new Image();
-    watermarkImg.crossOrigin = 'anonymous';
-    
-    await new Promise((resolve) => {
-      watermarkImg.onload = () => {
-        // Calculate position for centered watermark
-        const watermarkWidth = finalCanvas.width * 0.5; // 50% of canvas width
-        const watermarkHeight = (watermarkImg.height * watermarkWidth) / watermarkImg.width;
-        const x = (finalCanvas.width - watermarkWidth) / 2;
-        const y = (finalCanvas.height - watermarkHeight) / 2;
+      // Wait for images to load
+      await new Promise((resolve) => {
+        const images = clonedElement.getElementsByTagName('img');
+        let loadedCount = 0;
+        const totalImages = images.length;
         
-        // Set transparency
-        ctx.globalAlpha = 0.1; // 10% opacity
+        if (totalImages === 0) {
+          resolve();
+          return;
+        }
         
-        // Draw watermark
-        ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight);
+        const imageLoaded = () => {
+          loadedCount++;
+          if (loadedCount === totalImages) {
+            resolve();
+          }
+        };
         
-        // Reset opacity
-        ctx.globalAlpha = 1;
-        resolve();
-      };
-      
-      watermarkImg.onerror = () => {
-        // Fallback: draw text watermark
-        ctx.globalAlpha = 0.1;
-        ctx.font = 'bold 100px Times New Roman';
-        ctx.fillStyle = '#000000';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('KCC', finalCanvas.width / 2, finalCanvas.height / 2);
-        ctx.globalAlpha = 1;
-        resolve();
-      };
-      
-      watermarkImg.src = kccLogo;
-    });
+        Array.from(images).forEach((img) => {
+          if (img.complete) {
+            imageLoaded();
+          } else {
+            img.onload = imageLoaded;
+            img.onerror = imageLoaded;
+          }
+        });
+      });
 
-    // Calculate PDF dimensions
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = (finalCanvas.height * imgWidth) / finalCanvas.width;
-    
-    // Create PDF
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    
-    // Add image to PDF
-    const imgData = finalCanvas.toDataURL('image/png', 1.0);
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-    
-    // Add additional centered watermark to PDF
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    
-    // Set transparency for watermark
-    pdf.setGState(new pdf.GState({opacity: 0.1}));
-    
-    // Add watermark in center of page
-    const pdfWatermarkImg = new Image();
-    pdfWatermarkImg.onload = () => {
-      const watermarkPDFWidth = pageWidth * 0.5;
-      const watermarkPDFHeight = (pdfWatermarkImg.height * watermarkPDFWidth) / pdfWatermarkImg.width;
-      const watermarkX = (pageWidth - watermarkPDFWidth) / 2;
-      const watermarkY = (pageHeight - watermarkPDFHeight) / 2;
+      // Calculate optimal scale for A4
+      const A4_WIDTH_MM = 210;
+      const A4_HEIGHT_MM = 297;
+      const PIXELS_PER_MM = 3.78; // Standard conversion
+      const targetWidth = A4_WIDTH_MM * PIXELS_PER_MM;
+      const targetHeight = A4_HEIGHT_MM * PIXELS_PER_MM;
+
+      // Use html2canvas to capture the content
+      const canvas = await html2canvas(clonedElement, {
+        scale: 1.5, // Lower scale for better performance
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: targetWidth,
+        height: clonedElement.scrollHeight,
+        windowWidth: targetWidth,
+        onclone: (clonedDoc) => {
+          // Additional styling for cloned document
+          const clonedRoot = clonedDoc.querySelector('.pdf-content');
+          if (clonedRoot) {
+            clonedRoot.style.width = `${targetWidth}px`;
+            clonedRoot.style.minHeight = `${targetHeight}px`;
+          }
+        }
+      });
+
+      // Remove temporary container
+      document.body.removeChild(tempContainer);
+
+      // Create a new canvas for watermark
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height;
+      const ctx = finalCanvas.getContext('2d');
       
-      pdf.addImage(
-        kccLogo,
-        'PNG',
-        watermarkX,
-        watermarkY,
-        watermarkPDFWidth,
-        watermarkPDFHeight
-      );
+      // Draw the original content
+      ctx.drawImage(canvas, 0, 0);
       
-      // Reset opacity
-      pdf.setGState(new pdf.GState({opacity: 1}));
+      // Add watermark
+      const watermarkImg = new Image();
+      watermarkImg.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve) => {
+        watermarkImg.onload = () => {
+          // Calculate watermark size (30% of canvas width)
+          const watermarkWidth = finalCanvas.width * 0.3;
+          const watermarkHeight = (watermarkImg.height * watermarkWidth) / watermarkImg.width;
+          const x = (finalCanvas.width - watermarkWidth) / 2;
+          const y = (finalCanvas.height - watermarkHeight) / 2;
+          
+          // Set transparency
+          ctx.globalAlpha = 0.08; // 8% opacity
+          
+          // Draw watermark
+          ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight);
+          
+          // Reset opacity
+          ctx.globalAlpha = 1;
+          resolve();
+        };
+        
+        watermarkImg.onerror = () => {
+          // Fallback: draw text watermark
+          ctx.globalAlpha = 0.05;
+          ctx.font = 'bold 80px Times New Roman';
+          ctx.fillStyle = '#000000';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('KCC', finalCanvas.width / 2, finalCanvas.height / 2);
+          ctx.globalAlpha = 1;
+          resolve();
+        };
+        
+        watermarkImg.src = kccLogo;
+      });
+
+      // Calculate PDF dimensions
+      const imgWidth = A4_WIDTH_MM;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Add image to PDF
+      const imgData = finalCanvas.toDataURL('image/png', 0.9);
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
       // Save PDF
       const fileName = `${student?.studentName || 'Student'}_${term}_Term_${academicYear}_Result.pdf`
@@ -239,233 +216,168 @@ const handleDownloadPDF = async () => {
         .replace(/[^a-zA-Z0-9_]/g, '');
       
       pdf.save(fileName);
-    };
-    
-    pdfWatermarkImg.src = kccLogo;
 
-    // Reset button state
-    downloadBtn.innerHTML = originalText;
-    downloadBtn.disabled = false;
-
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    alert('Failed to generate PDF. Please try again.');
-    
-    // Reset button state on error
-    const downloadBtn = document.querySelector('[title="Download as PDF"]');
-    if (downloadBtn) {
-      downloadBtn.innerHTML = '<FiDownload />Download PDF';
+      // Reset button state
+      downloadBtn.innerHTML = originalText;
       downloadBtn.disabled = false;
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+      
+      // Reset button state on error
+      const downloadBtn = document.querySelector('[title="Download as PDF"]');
+      if (downloadBtn) {
+        downloadBtn.innerHTML = '<FiDownload />Download PDF';
+        downloadBtn.disabled = false;
+      }
+      
+      // Clean up any temporary elements
+      const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 9999"]');
+      tempElements.forEach(el => document.body.removeChild(el));
     }
-    
-    // Clean up any temporary elements
-    const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 9999"]');
-    tempElements.forEach(el => document.body.removeChild(el));
-  }
-};
-
-// Direct print functionality with centered watermark
-const handleDirectPrint = () => {
-  if (!componentRef.current) {
-    console.error('No content to print');
-    alert('No content available for printing');
-    return;
-  }
-  
-  // Create a new window for printing
-  const printWindow = window.open('', '_blank');
-  
-  // Get the content
-  const content = componentRef.current.innerHTML;
-  
-  // Create print styles with centered watermark
-  const printStyles = `
-    <style>
-      @media print {
-        @page {
-          size: A4;
-          margin: 15mm;
-        }
-        body {
-          font-family: 'Times New Roman', Times, serif;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          margin: 0;
-          padding: 0;
-        }
-        .no-print {
-          display: none !important;
-        }
-      }
-      
-      /* Main container */
-      body {
-        width: 210mm;
-        min-height: 297mm;
-        padding: 15mm;
-        margin: 0 auto;
-        background: white;
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12px;
-        position: relative;
-      }
-      
-      /* Centered watermark */
-      body::before {
-        content: "";
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 50%;
-        height: auto;
-        aspect-ratio: 1/1;
-        background-image: url(${kccLogo});
-        background-repeat: no-repeat;
-        background-size: contain;
-        background-position: center;
-        opacity: 0.1;
-        pointer-events: none;
-        z-index: 0;
-      }
-      
-      /* Ensure content is above watermark */
-      .content-wrapper {
-        position: relative;
-        z-index: 1;
-      }
-      
-      /* Layout fixes */
-      .grid {
-        display: grid !important;
-      }
-      .grid-cols-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-      }
-      .grid-cols-3 {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-      }
-      .flex {
-        display: flex !important;
-      }
-      .justify-between {
-        justify-content: space-between !important;
-      }
-      .items-start {
-        align-items: flex-start !important;
-      }
-      .text-center {
-        text-align: center !important;
-      }
-      .w-full {
-        width: 100% !important;
-      }
-      .w-1\\/4 {
-        width: 25% !important;
-      }
-      .flex-1 {
-        flex: 1 1 0% !important;
-      }
-      
-      /* Spacing */
-      .mb-4 { margin-bottom: 1rem !important; }
-      .mb-6 { margin-bottom: 1.5rem !important; }
-      .mt-6 { margin-top: 1.5rem !important; }
-      .pb-3 { padding-bottom: 0.75rem !important; }
-      
-      /* Borders */
-      .border-b { border-bottom-width: 1px !important; }
-      .border-blue-800 { border-color: #1e40af !important; }
-      
-      /* Tables */
-      table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-      }
-      th, td {
-        border: 1px solid #d1d5db !important;
-        padding: 4px 6px !important;
-      }
-      
-      /* Images */
-      img {
-        max-width: 100% !important;
-        height: auto !important;
-      }
-      
-      /* Box sizing */
-      * {
-        box-sizing: border-box !important;
-      }
-      
-      /* Background colors - ensure they're visible */
-      .bg-white {
-        background-color: white !important;
-      }
-      .bg-f9fafb {
-        background-color: #f9fafb !important;
-      }
-      .bg-f3f4f6 {
-        background-color: #f3f4f6 !important;
-      }
-      .bg-f8fafc {
-        background-color: #f8fafb !important;
-      }
-      .bg-f0f9ff {
-        background-color: #f0f9ff !important;
-      }
-      .bg-1e40af {
-        background-color: #1e40af !important;
-      }
-    </style>
-  `;
-  
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        ${printStyles}
-      </head>
-      <body>
-        <div class="content-wrapper">
-          ${content}
-        </div>
-        <script>
-          // Wait for all images to load before printing
-          window.onload = function() {
-            setTimeout(() => {
-              window.print();
-            }, 500);
-          };
-        </script>
-      </body>
-    </html>
-  `);
-  
-  printWindow.document.close();
-  printWindow.focus();
-};
-
-  // Helper function to create pattern canvas
-  const createPatternCanvas = (imageDataURL) => {
-    return new Promise((resolve) => {
-      const patternCanvas = document.createElement('canvas');
-      patternCanvas.width = 200;
-      patternCanvas.height = 200;
-      const patternCtx = patternCanvas.getContext('2d');
-      
-      const img = new Image();
-      img.onload = () => {
-        patternCtx.drawImage(img, 0, 0, 200, 200);
-        resolve(patternCanvas);
-      };
-      img.src = imageDataURL;
-    });
   };
 
+  // Direct print functionality
+  const handleDirectPrint = () => {
+    if (!componentRef.current) {
+      console.error('No content to print');
+      alert('No content available for printing');
+      return;
+    }
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
+    // Get the content
+    const content = componentRef.current.innerHTML;
+    
+    // Create print styles optimized for A4
+    const printStyles = `
+      <style>
+        @media print {
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 10px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          
+          /* Optimize tables for printing */
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 9px !important;
+          }
+          
+          th, td {
+            padding: 3px 4px !important;
+            border: 1px solid #666 !important;
+          }
+          
+          /* Reduce spacing */
+          .mb-6 { margin-bottom: 8px !important; }
+          .pb-3 { padding-bottom: 4px !important; }
+          .mt-6 { margin-top: 8px !important; }
+          
+          /* Optimize layout */
+          .grid-cols-2 {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          
+          /* Center content */
+          .text-center {
+            text-align: center !important;
+          }
+          
+          /* Ensure proper image scaling */
+          img {
+            max-width: 100% !important;
+            height: auto !important;
+          }
+        }
+        
+        /* Pre-print styles */
+        body {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 10mm 8mm;
+          margin: 0 auto;
+          background: white;
+          font-family: 'Times New Roman', serif;
+          font-size: 10px;
+          box-sizing: border-box;
+        }
+        
+        /* Adjust content for A4 */
+        .pdf-content * {
+          box-sizing: border-box;
+        }
+        
+        /* Make tables compact */
+        table {
+          width: 100%;
+          font-size: 9px;
+          border-collapse: collapse;
+        }
+        
+        th, td {
+          padding: 3px 4px;
+          border: 1px solid #666;
+        }
+        
+        /* Reduce header sizes */
+        h2 {
+          font-size: 14px !important;
+          margin: 5px 0 !important;
+        }
+        
+        h3 {
+          font-size: 12px !important;
+          margin: 4px 0 !important;
+        }
+      </style>
+    `;
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          ${printStyles}
+        </head>
+        <body>
+          <div class="pdf-content">
+            ${content}
+          </div>
+          <script>
+            // Wait for all images to load before printing
+            window.onload = function() {
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 1000);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
 
   // Get current date for report
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -516,136 +428,131 @@ const handleDirectPrint = () => {
     { grade: 'F', score: '0 - 39', remark: 'Fail' }
   ];
 
- return (
-  <div className="w-full">
-    {/* Action Buttons */}
-    <div className="flex gap-2 mb-4 no-print">
-      <button
-        onClick={handleDownloadPDF}
-        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200"
-        title="Download as PDF"
-      >
-        <FiDownload />
-        Download PDF
-      </button>
-      <button
-        onClick={handleDirectPrint}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-all duration-200"
-        title="Print Result"
-      >
-        <FiPrinter />
-        Print Result
-      </button>
-    </div>
+  return (
+    <div className="w-full">
+      {/* Action Buttons */}
+      <div className="flex gap-2 mb-4 no-print">
+        <button
+          onClick={handleDownloadPDF}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200"
+          title="Download as PDF"
+        >
+          <FiDownload />
+          Download PDF
+        </button>
+        <button
+          onClick={handleDirectPrint}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-all duration-200"
+          title="Print Result"
+        >
+          <FiPrinter />
+          Print Result
+        </button>
+      </div>
 
-    {/* PDF Content - Optimized for A4 */}
-    <div 
-      ref={componentRef} 
-      className="bg-white border border-gray-200 rounded-lg"
-      style={{ 
-        width: '210mm',
-        minHeight: '297mm',
-        margin: '0 auto',
-        padding: '15mm',
-        fontFamily: 'Times New Roman, serif',
-        fontSize: '12px',
-        boxSizing: 'border-box',
-        position: 'relative'
-      }}
-    >
-      {/* Centered watermark overlay */}
-      <div style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '50%',
-        height: '50%',
-        backgroundImage: `url(${kccLogo})`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'contain',
-        backgroundPosition: 'center',
-        opacity: 0.4,
-        pointerEvents: 'none',
-        zIndex: 0
-      }}></div>
+      {/* PDF Content - Optimized for A4 */}
+      <div 
+        ref={componentRef} 
+        className="pdf-content bg-white border border-gray-200 rounded-lg"
+        style={{ 
+          width: '210mm',
+          minHeight: '297mm',
+          margin: '0 auto',
+          padding: '10mm 8mm',
+          fontFamily: 'Times New Roman, serif',
+          fontSize: '10px',
+          boxSizing: 'border-box',
+          position: 'relative'
+        }}
+      >
+        {/* Centered watermark overlay */}
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '30%',
+          height: 'auto',
+          aspectRatio: '1/1',
+          backgroundImage: `url(${kccLogo})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          opacity: 0.08,
+          pointerEvents: 'none',
+          zIndex: 0
+        }}></div>
 
-      {/* Content wrapper to bring content above watermark */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Rest of your content goes here */}
-        {/* School Header */}
-   
-          <div className="flex justify-between items-start mb-6 pb-3 border-b border-blue-800">
+        {/* Content wrapper to bring content above watermark */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* School Header */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'flex-start', 
+            marginBottom: '12px', 
+            paddingBottom: '6px', 
+            borderBottom: '2px solid #1e40af' 
+          }}>
             {/* School Logo - LEFT SIDE */}
-            <div className="w-1/4 flex justify-start">
-              <div style={{ width: '70px', height: '70px' }}>
-                {kccLogo ? (
-                  <img 
-                    src={kccLogo} 
-                    alt="KCC Logo" 
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'contain',
-                      display: 'block' 
-                    }}
-                    crossOrigin="anonymous"
-                    onError={(e) => {
-                      console.error('Failed to load logo:', e);
-                      e.target.style.display = 'none';
-                      e.target.parentNode.innerHTML = `
-                        <div style="width: 100%; height: 100%; background: #dbeafe; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 2px solid #93c5fd;">
-                          <span style="color: #1e40af; font-weight: bold; font-size: 16px;">KCC</span>
-                        </div>
-                      `;
-                    }}
-                  />
-                ) : (
-                  <div style={{ 
+            <div style={{ width: '60px', height: '60px', flexShrink: 0 }}>
+              {kccLogo ? (
+                <img 
+                  src={kccLogo} 
+                  alt="KCC Logo" 
+                  style={{ 
                     width: '100%', 
                     height: '100%', 
-                    background: '#dbeafe', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    borderRadius: '6px', 
-                    border: '2px solid #93c5fd' 
-                  }}>
-                    <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '16px' }}>KCC</span>
-                  </div>
-                )}
-              </div>
+                    objectFit: 'contain',
+                    display: 'block' 
+                  }}
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  background: '#dbeafe', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  borderRadius: '4px', 
+                  border: '1px solid #93c5fd' 
+                }}>
+                  <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '12px' }}>KCC</span>
+                </div>
+              )}
             </div>
             
             {/* School Name and Details - CENTER */}
-            <div className="flex-1 text-center px-1">
+            <div style={{ flex: 1, textAlign: 'center', padding: '0 8px' }}>
               <h2 style={{ 
-                fontSize: '20px', 
+                fontSize: '16px', 
                 fontWeight: 'bold', 
                 color: '#1e40af', 
-                marginBottom: '8px',
-                lineHeight: '1.2'
+                marginBottom: '4px',
+                lineHeight: '1.1'
               }}>
                 KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C)
               </h2>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>
                 Knowledge is Power
               </div>
-              <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>
+              <div style={{ fontSize: '9px', color: '#6b7280', fontStyle: 'italic' }}>
                 Kwanar Yashi along Hayin Dae Muntsira Kano, Nigeria
               </div>
-              <div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic', marginTop: '2px' }}>
+              <div style={{ fontSize: '9px', color: '#6b7280', fontStyle: 'italic', marginTop: '1px' }}>
                 08065662896 • kamaluddeencomprehensive@gmail.com
               </div>
             </div>
             
             {/* Student Photo - RIGHT SIDE */}
-            <div className="w-1/4 flex justify-end">
+            <div style={{ width: '50px', height: '50px', flexShrink: 0 }}>
               <div style={{ 
-                width: '60px', 
-                height: '60px', 
-                border: '2px solid #1e40af',
-                borderRadius: '4px', 
+                width: '100%', 
+                height: '100%', 
+                border: '1px solid #1e40af',
+                borderRadius: '2px', 
                 overflow: 'hidden', 
                 backgroundColor: '#f3f4f6' 
               }}>
@@ -655,14 +562,6 @@ const handleDirectPrint = () => {
                     alt={student?.studentName || 'Student'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     crossOrigin="anonymous"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentNode.innerHTML = `
-                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                          <span style="font-size: 9px; color: #9ca3af;">No Photo</span>
-                        </div>
-                      `;
-                    }}
                   />
                 ) : (
                   <div style={{ 
@@ -672,7 +571,7 @@ const handleDirectPrint = () => {
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <span style={{ fontSize: '9px', color: '#9ca3af' }}>No Photo</span>
+                    <span style={{ fontSize: '7px', color: '#9ca3af' }}>No Photo</span>
                   </div>
                 )}
               </div>
@@ -680,277 +579,230 @@ const handleDirectPrint = () => {
           </div>
 
           {/* Result Sheet Title */}
-          <div className="text-center mb-6">
+          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
             <h2 style={{ 
-              fontSize: '18px', 
+              fontSize: '14px', 
               fontWeight: 'bold', 
               color: '#1e40af', 
-              marginBottom: '4px',
+              marginBottom: '1px',
               textTransform: 'uppercase'
             }}>
               STUDENT'S RESULT SHEET
             </h2>
-            <div style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>
+            <div style={{ fontSize: '12px', color: '#374151', fontWeight: '600' }}>
               {term} TERM - {academicYear} ACADEMIC SESSION
             </div>
           </div>
-        {/* Student Information Section */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Student's Name:</span>
-              <span style={{ flex: '1', fontWeight: 'bold', color: '#111827' }}>{student?.studentName || 'N/A'}</span>
-            </div>
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Admission Number:</span>
-              <span style={{ flex: '1', color: '#111827' }}>{student?.admissionNumber || 'N/A'}</span>
-            </div>
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Class:</span>
-              <span style={{ flex: '1', color: '#111827' }}>{className || 'N/A'}</span>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Term:</span>
-              <span style={{ flex: '1', color: '#111827' }}>{term || 'N/A'}</span>
-            </div>
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Academic Year:</span>
-              <span style={{ flex: '1', color: '#111827' }}>{academicYear || 'N/A'}</span>
-            </div>
-            <div className="flex border-b pb-1">
-              <span style={{ width: '120px', fontWeight: '600', color: '#4b5563' }}>Date Printed:</span>
-              <span style={{ flex: '1', color: '#111827' }}>{currentDate}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Performance Summary - TABLE FORMAT */}
-        {studentStats && (
-          <div className="mb-6">
-            <h3 style={{ 
-              fontSize: '16px', 
-              fontWeight: 'bold', 
-              color: '#1e40af', 
-              marginBottom: '8px',
-              textTransform: 'uppercase'
-            }}>
-              PERFORMANCE SUMMARY
-            </h3>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'collapse', 
-              border: '1px solid #d1d5db',
-              marginBottom: '8px'
-            }}>
-              <tbody>
-                <tr>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%', 
-                    backgroundColor: '#f8fafc',
-                    fontWeight: '600'
-                  }}>
-                    Total Subjects
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {studentStats.totalSubjects || 0}
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%', 
-                    backgroundColor: '#f8fafc',
-                    fontWeight: '600'
-                  }}>
-                    Total Marks
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    color: '#059669'
-                  }}>
-                    {studentStats.totalObtainedMarks?.toFixed(0) || 0}/{studentStats.totalMaximumMarks || 0}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%', 
-                    backgroundColor: '#f8fafc',
-                    fontWeight: '600'
-                  }}>
-                    Average Score
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    color: '#1e40af'
-                  }}>
-                    {studentStats.totalAverage?.toFixed(1) || '0.0'}%
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%', 
-                    backgroundColor: '#f8fafc',
-                    fontWeight: '600'
-                  }}>
-                    Class Position
-                  </td>
-                  <td style={{ 
-                    border: '1px solid #d1d5db', 
-                    padding: '6px', 
-                    width: '25%',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    color: '#7c3aed'
-                  }}>
-                    {student?.position ? `${student.position}${getOrdinalSuffix(student.position)}` : 'N/A'}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          {/* Student Information Section - Compact */}
+          <div style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px', marginBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Student's Name:</span>
+                <span style={{ fontWeight: 'bold', color: '#111827', fontSize: '9px' }}>{student?.studentName || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px', marginBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Admission Number:</span>
+                <span style={{ color: '#111827', fontSize: '9px' }}>{student?.admissionNumber || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Class:</span>
+                <span style={{ color: '#111827', fontSize: '9px' }}>{className || 'N/A'}</span>
+              </div>
+            </div>
             
-            {/* Overall Remark */}
-            <div style={{ 
-              padding: '8px', 
-              backgroundColor: '#f0f9ff', 
-              border: '1px solid #93c5fd',
-              borderRadius: '4px',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                Overall Remark: <span style={{ color: '#059669' }}>{getOverallRemark(studentStats.totalAverage)}</span>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px', marginBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Term:</span>
+                <span style={{ color: '#111827', fontSize: '9px' }}>{term || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px', marginBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Academic Year:</span>
+                <span style={{ color: '#111827', fontSize: '9px' }}>{academicYear || 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
+                <span style={{ fontWeight: '600', color: '#4b5563', fontSize: '9px' }}>Date Printed:</span>
+                <span style={{ color: '#111827', fontSize: '9px' }}>{currentDate}</span>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Subjects Table */}
-        <div className="mb-6">
-          <h3 style={{ 
-            fontSize: '16px', 
-            fontWeight: 'bold', 
-            color: '#1e40af', 
-            marginBottom: '12px',
-            textTransform: 'uppercase'
-          }}>
-            SUBJECTS PERFORMANCE
-          </h3>
-          <div style={{ overflowX: 'auto', fontSize: '10px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#1e40af', color: 'white' }}>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'left', fontSize: '10px' }}>S/N</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'left', fontSize: '10px' }}>SUBJECT</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'left', fontSize: '10px' }}>TEACHER</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '10px' }}>CA (30)</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '10px' }}>EXAM (70)</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '10px' }}>TOTAL (100)</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '10px' }}>GRADE</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '10px' }}>REMARKS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {studentAllSubjects && studentAllSubjects.length > 0 ? (
-                  studentAllSubjects.map((subject, index) => (
-                    <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white' }}>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center' }}>{index + 1}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', fontWeight: '600' }}>{subject.subjectName}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px' }}>{subject.teacherName}</td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '2px 4px',
-                          borderRadius: '2px',
-                          fontSize: '9px',
-                          ...(parseFloat(subject.caScore || 0) >= 20 ? {
-                             
-                           } :
-                              parseFloat(subject.caScore || 0) >= 15 ? {  } :
-                              { 
-                                
-                               })
-                        }}>
-                          {subject.caScore || '0'}
-                        </span>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '2px 4px',
-                          borderRadius: '2px',
-                          fontSize: '9px',
-                          ...(parseFloat(subject.examScore || 0) >= 50 ? { } :
-                              parseFloat(subject.examScore || 0) >= 35 ? {  } :
-                              {  })
-                        }}>
-                          {subject.examScore || '0'}
-                        </span>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}>
-                        <span style={{
-                          padding: '2px 4px',
-                          borderRadius: '2px',
-                          ...(parseFloat(subject.totalScore || 0) >= 80 ? {  } :
-                              parseFloat(subject.totalScore || 0) >= 60 ? {  } :
-                              parseFloat(subject.totalScore || 0) >= 40 ? { } :
-                              { })
-                        }}>
-                          {subject.totalScore || '0'}
-                        </span>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center' }}>
-                        <span style={{
-                          padding: '3px 6px',
-                          borderRadius: '9999px',
-                          fontSize: '10px',
-                          fontWeight: 'bold',
-                          ...(subject.grade === 'A' ? {  color: '#065f46' } :
-                              subject.grade === 'B' ? {  color: '#1e40af' } :
-                              subject.grade === 'C' ? {  color: '#92400e' } :
-                              subject.grade === 'D' ? {  color: '#9a3412' } :
-                              subject.grade === 'E' ? {  color: '#6b21a8' } :
-                              { color: '#991b1b' })
-                        }}>
-                          {subject.grade || 'N/A'}
-                        </span>
-                      </td>
-                      <td style={{ border: '1px solid #d1d5db', padding: '4px' }}>{subject.remarks || getGradeRemark(subject.grade)}</td>
-                    </tr>
-                  ))
-                ) : (
+          {/* Performance Summary - More Compact */}
+          {studentStats && (
+            <div style={{ marginBottom: '12px' }}>
+              <h3 style={{ 
+                fontSize: '12px', 
+                fontWeight: 'bold', 
+                color: '#1e40af', 
+                marginBottom: '4px',
+                textTransform: 'uppercase'
+              }}>
+                PERFORMANCE SUMMARY
+              </h3>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                border: '1px solid #d1d5db',
+                marginBottom: '4px',
+                fontSize: '8px'
+              }}>
+                <tbody>
                   <tr>
-                    <td colSpan="8" style={{ border: '1px solid #d1d5db', padding: '12px', textAlign: 'center' }}>
-                      No subject data available
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px', 
+                      backgroundColor: '#f8fafc',
+                      fontWeight: '600'
+                    }}>
+                      Number in Class
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '10px'
+                    }}>
+                      {studentStats.numberInClass || 0}
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px', 
+                      backgroundColor: '#f8fafc',
+                      fontWeight: '600'
+                    }}>
+                      Total Subjects
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '10px'
+                    }}>
+                      {studentStats.totalSubjects || 0}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  <tr>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px', 
+                      backgroundColor: '#f8fafc',
+                      fontWeight: '600'
+                    }}>
+                      Average Score
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '10px',
+                      color: '#1e40af'
+                    }}>
+                      {studentStats.totalAverage?.toFixed(1) || '0.0'}%
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px', 
+                      backgroundColor: '#f8fafc',
+                      fontWeight: '600'
+                    }}>
+                      Class Position
+                    </td>
+                    <td style={{ 
+                      border: '1px solid #d1d5db', 
+                      padding: '3px',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '10px',
+                      color: '#7c3aed'
+                    }}>
+                      {student?.position ? `${student.position}${getOrdinalSuffix(student.position)}` : 'N/A'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
 
-        {/* Grading System and Class Statistics */}
+          {/* Subjects Table - More Compact */}
+          <div style={{ marginBottom: '12px' }}>
+            <h3 style={{ 
+              fontSize: '12px', 
+              fontWeight: 'bold', 
+              color: '#1e40af', 
+              marginBottom: '6px',
+              textTransform: 'uppercase'
+            }}>
+              SUBJECTS PERFORMANCE
+            </h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                border: '1px solid #d1d5db',
+                fontSize: '8px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#1e40af', color: 'white' }}>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'left', fontSize: '8px' }}>S/N</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'left', fontSize: '8px' }}>SUBJECT</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'center', fontSize: '8px' }}>CA</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'center', fontSize: '8px' }}>EXAM</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'center', fontSize: '8px' }}>TOTAL</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'center', fontSize: '8px' }}>GRADE</th>
+                    <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'center', fontSize: '8px' }}>REMARKS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentAllSubjects && studentAllSubjects.length > 0 ? (
+                    studentAllSubjects.map((subject, index) => (
+                      <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white' }}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', textAlign: 'center', fontSize: '8px' }}>{index + 1}</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', fontWeight: '600', fontSize: '8px' }}>{subject.subjectName}</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', textAlign: 'center', fontSize: '8px' }}>{subject.caScore || '0'}</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', textAlign: 'center', fontSize: '8px' }}>{subject.examScore || '0'}</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', textAlign: 'center', fontWeight: 'bold', fontSize: '8px' }}>
+                          {subject.totalScore || '0'}
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', textAlign: 'center', fontSize: '8px' }}>
+                          <span style={{
+                            padding: '1px 3px',
+                            borderRadius: '2px',
+                            fontSize: '7px',
+                            fontWeight: 'bold',
+                            backgroundColor: subject.grade === 'A' ? '#d1fae5' :
+                                          subject.grade === 'B' ? '#dbeafe' :
+                                          subject.grade === 'C' ? '#fef3c7' :
+                                          subject.grade === 'D' ? '#ffedd5' :
+                                          subject.grade === 'E' ? '#f3e8ff' :
+                                          '#fecaca',
+                            color: subject.grade === 'A' ? '#065f46' :
+                                  subject.grade === 'B' ? '#1e40af' :
+                                  subject.grade === 'C' ? '#92400e' :
+                                  subject.grade === 'D' ? '#9a3412' :
+                                  subject.grade === 'E' ? '#6b21a8' :
+                                  '#991b1b'
+                          }}>
+                            {subject.grade || 'N/A'}
+                          </span>
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '2px', fontSize: '8px' }}>{subject.remarks || getGradeRemark(subject.grade)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" style={{ border: '1px solid #d1d5db', padding: '6px', textAlign: 'center', fontSize: '9px' }}>
+                        No subject data available
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {/* Grading System and Class Statistics */}
         <div className="mb-6 grid grid-cols-2 gap-6">
           {/* Grading System */}
           <div>
@@ -1038,15 +890,15 @@ const handleDirectPrint = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> 
 
-        {/* Footer */}
-        <div className="mt-6 text-center" style={{ fontSize: '10px', color: '#6b7280' }}>
-          <p>This is a computer-generated document. No signature is required for authentication.</p>
-          <p style={{ marginTop: '2px' }}>KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C) - "Knowledge is power"</p>
-          <p style={{ marginTop: '2px' }}>Result generated on: {currentDate}</p>
+          {/* Footer */}
+          <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '8px', color: '#6b7280' }}>
+            <p>This is a computer-generated document. No signature is required for authentication.</p>
+            <p style={{ marginTop: '1px' }}>KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C) - "Knowledge is power"</p>
+            <p style={{ marginTop: '1px' }}>Result generated on: {currentDate}</p>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

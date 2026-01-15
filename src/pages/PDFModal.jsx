@@ -39,6 +39,7 @@ const PDFModal = ({ pdfData, onClose }) => {
             studentPhotoUrl={pdfData.studentPhotoUrl}
             studentAllSubjects={pdfData.studentAllSubjects}
             studentStats={pdfData.studentStats}
+           
           />
         </div>
         

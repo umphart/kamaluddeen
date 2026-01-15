@@ -334,70 +334,84 @@ const ResultsPage = () => {
     }
     printAllResults(selectedClass, selectedTerm, academicYear, studentSummaries, classStatistics, filteredResults);
   };
+const handlePrintStudentResult = (student) => {
+  if (!student) {
+    toast.error('No student data available for printing');
+    return;
+  }
 
-  const handlePrintStudentResult = (student) => {
-    if (!student) {
-      toast.error('No student data available for printing');
-      return;
-    }
+  const studentAllSubjects = filteredResults.filter(r => r.studentId === student.studentId);
+  
+  if (studentAllSubjects.length === 0) {
+    toast.error('No subject data found for this student');
+    return;
+  }
 
-    const studentAllSubjects = filteredResults.filter(r => r.studentId === student.studentId);
-    
-    if (studentAllSubjects.length === 0) {
-      toast.error('No subject data found for this student');
-      return;
-    }
-
-    const studentStats = calculateStudentStats(studentAllSubjects);
-    
-    setPdfData({
-      student,
-      term: selectedTerm,
-      academicYear,
-      className: selectedClass,
-      studentSummaries,
-      classStatistics,
-      filteredResults,
-      studentPhotoUrl: student.studentPhotoUrl,
-      studentAllSubjects,
-      studentStats
-    });
+  const studentStats = calculateStudentStats(studentAllSubjects, student.studentId);
+  
+  setPdfData({
+    student: {
+      ...student,
+      position: studentStats.position, // Add position to student object
+    },
+    term: selectedTerm,
+    academicYear,
+    className: selectedClass,
+    studentSummaries,
+    classStatistics,
+    filteredResults,
+    studentPhotoUrl: student.studentPhotoUrl,
+    studentAllSubjects,
+    studentStats
+  });
+};
+const calculateStudentStats = (studentAllSubjects, studentId) => {
+  if (!studentAllSubjects || studentAllSubjects.length === 0) return null;
+  
+  const totalSubjects = studentAllSubjects.length;
+  const totalScores = studentAllSubjects.reduce((sum, subj) => 
+    sum + (parseFloat(subj.totalScore) || 0), 0
+  );
+  const caScores = studentAllSubjects.reduce((sum, subj) => 
+    sum + (parseFloat(subj.caScore) || 0), 0
+  );
+  const examScores = studentAllSubjects.reduce((sum, subj) => 
+    sum + (parseFloat(subj.examScore) || 0), 0
+  );
+  
+  const totalMaximumMarks = totalSubjects * 100;
+  const totalObtainedMarks = studentAllSubjects.reduce((sum, subj) => 
+    sum + (parseFloat(subj.totalScore) || 0), 0
+  );
+  
+  // Calculate total average for this student
+  const totalAverage = totalSubjects > 0 ? totalScores / totalSubjects : 0;
+  
+  // Find this student's position in studentSummaries
+  const studentSummary = studentSummaries.find(s => s.studentId === studentId);
+  const position = studentSummary?.position || 0;
+  
+  // Get total number of students in class
+  const numberInClass = studentSummaries.length || 0;
+  
+  return {
+    totalAverage: parseFloat(totalAverage.toFixed(2)),
+    caAverage: parseFloat((caScores / totalSubjects).toFixed(2)),
+    examAverage: parseFloat((examScores / totalSubjects).toFixed(2)),
+    totalSubjects,
+    highestScore: Math.max(...studentAllSubjects.map(s => parseFloat(s.totalScore) || 0)),
+    lowestScore: Math.min(...studentAllSubjects.map(s => parseFloat(s.totalScore) || 0)),
+    totalObtainedMarks,
+    totalMaximumMarks,
+    percentage: (totalObtainedMarks / totalMaximumMarks) * 100,
+    caTotal: caScores,
+    examTotal: examScores,
+    totalTotal: totalScores,
+    // Add these two properties
+    numberInClass,
+    position
   };
-
-  const calculateStudentStats = (studentAllSubjects) => {
-    if (!studentAllSubjects || studentAllSubjects.length === 0) return null;
-    
-    const totalSubjects = studentAllSubjects.length;
-    const totalScores = studentAllSubjects.reduce((sum, subj) => 
-      sum + (parseFloat(subj.totalScore) || 0), 0
-    );
-    const caScores = studentAllSubjects.reduce((sum, subj) => 
-      sum + (parseFloat(subj.caScore) || 0), 0
-    );
-    const examScores = studentAllSubjects.reduce((sum, subj) => 
-      sum + (parseFloat(subj.examScore) || 0), 0
-    );
-    
-    const totalMaximumMarks = totalSubjects * 100;
-    const totalObtainedMarks = studentAllSubjects.reduce((sum, subj) => 
-      sum + (parseFloat(subj.totalScore) || 0), 0
-    );
-    
-    return {
-      totalAverage: totalScores / totalSubjects,
-      caAverage: caScores / totalSubjects,
-      examAverage: examScores / totalSubjects,
-      totalSubjects,
-      highestScore: Math.max(...studentAllSubjects.map(s => parseFloat(s.totalScore) || 0)),
-      lowestScore: Math.min(...studentAllSubjects.map(s => parseFloat(s.totalScore) || 0)),
-      totalObtainedMarks,
-      totalMaximumMarks,
-      percentage: (totalObtainedMarks / totalMaximumMarks) * 100,
-      caTotal: caScores,
-      examTotal: examScores,
-      totalTotal: totalScores
-    };
-  };
+};
 
   const handleResultSaved = () => {
     loadResults();
@@ -453,6 +467,9 @@ const ResultsPage = () => {
               studentPhotoUrl={pdfData.studentPhotoUrl}
               studentAllSubjects={pdfData.studentAllSubjects}
               studentStats={pdfData.studentStats}
+              
+              
+              
             />
           </div>
           

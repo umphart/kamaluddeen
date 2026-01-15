@@ -224,7 +224,7 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                 <th style={tableStyles.th}>Code</th>
                 <th style={tableStyles.th}>Name</th>
                 <th style={tableStyles.th}>Classes</th>
-                <th style={tableStyles.th}>Teacher</th>
+             
                  <th style={tableStyles.th}>Actions</th>
               </tr>
             </thead>
@@ -283,20 +283,7 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                         </>
                       )}
                     </td>
-                    <td style={tableStyles.td}>
-                      {editingSubject === subject.id ? (
-                        <input
-                          type="text"
-                          name="teacher"
-                          value={formData.teacher || ''}
-                          onChange={handleInputChange}
-                          style={tableStyles.input}
-                          placeholder="Teacher name"
-                        />
-                      ) : (
-                        subject.teacher
-                      )}
-                    </td>
+            
                    
                     <td style={tableStyles.actionCell}>
                       {editingSubject === subject.id ? (

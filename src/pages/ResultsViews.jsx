@@ -298,26 +298,6 @@ const ResultsViews = ({
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {/* Student Photo - using studentPhotoUrl */}
-                      {student.studentPhotoUrl ? (
-                        <img 
-                          src={student.studentPhotoUrl} 
-                          alt={student.studentName}
-                          className="w-10 h-10 rounded-full object-cover border border-gray-300"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            // Create fallback element
-                            const fallback = e.target.nextElementSibling || 
-                              document.createElement('div');
-                            fallback.className = 'w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center';
-                            e.target.parentNode.appendChild(fallback);
-                          }}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <FiUser className="text-gray-500" />
-                        </div>
-                      )}
                       
                       {/* Student Details */}
                       <div>
