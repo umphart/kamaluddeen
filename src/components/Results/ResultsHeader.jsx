@@ -15,7 +15,7 @@ const ResultsHeader = ({
   return (
     <div className="bg-white border-b px-6 py-4 flex justify-between items-center">
       <div>
-        <h2 className="text-xl font-bold text-gray-800">Enter Results</h2>
+    
         <p className="text-sm text-gray-600">
           {selectedClass ? `${selectedClass} • ${selectedTerm} • ${academicYear}` : 'Select class and term'}
           {selectedClass && students.length > 0 && (

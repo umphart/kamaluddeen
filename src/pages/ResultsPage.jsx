@@ -8,7 +8,7 @@ import ResultsFilters from './ResultsFilters';
 import ResultsViews from './ResultsViews';
 import ResultsModals from './ResultsModals';
 import { printAllResults } from '../components/Results/printAllResults';
-import ResultsPDFGenerator from '../components/Results/ResultsPDFGenerator'; // ADD THIS
+import ResultsPDFGenerator from '../components/Results/ResultsPDFGenerator';
 
 const ResultsPage = () => {
   const [showForm, setShowForm] = useState(false);
@@ -23,7 +23,7 @@ const ResultsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedResult, setSelectedResult] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [pdfData, setPdfData] = useState(null); // For PDF generation
+  const [pdfData, setPdfData] = useState(null);
   const [filters, setFilters] = useState({
     minScore: '',
     maxScore: '',
@@ -31,11 +31,10 @@ const ResultsPage = () => {
     student: ''
   });
 
-  // Calculate student summaries CORRECTED VERSION
+  // Calculate student summaries
   const studentSummaries = useMemo(() => {
     if (!filteredResults || filteredResults.length === 0) return [];
 
-    // Group results by student
     const studentMap = {};
     
     filteredResults.forEach(result => {
@@ -46,27 +45,24 @@ const ResultsPage = () => {
           studentId,
           studentName: result.studentName,
           admissionNumber: result.admissionNumber,
-          studentPhotoUrl: result.studentPhotoUrl || result.studentPhoto, // Support both property names
+          studentPhotoUrl: result.studentPhotoUrl || result.studentPhoto,
           caScores: [],
           examScores: [],
           totalScores: [],
           grades: [],
           subjectCount: 0,
-          totalScoreSum: 0 // Initialize sum
+          totalScoreSum: 0
         };
       }
       
-      // Parse scores
       const caScore = parseFloat(result.caScore) || 0;
       const examScore = parseFloat(result.examScore) || 0;
       const totalScore = parseFloat(result.totalScore) || 0;
       
-      // Add to arrays if valid
       if (!isNaN(caScore)) studentMap[studentId].caScores.push(caScore);
       if (!isNaN(examScore)) studentMap[studentId].examScores.push(examScore);
       if (!isNaN(totalScore)) studentMap[studentId].totalScores.push(totalScore);
       
-      // Calculate total sum for this subject
       const subjectTotal = caScore + examScore;
       studentMap[studentId].totalScoreSum += subjectTotal;
       
@@ -77,9 +73,7 @@ const ResultsPage = () => {
       studentMap[studentId].subjectCount++;
     });
 
-    // Calculate averages for each student
     const summaries = Object.values(studentMap).map(student => {
-      // Calculate averages
       const caAverage = student.caScores.length > 0 
         ? student.caScores.reduce((sum, score) => sum + score, 0) / student.caScores.length 
         : 0;
@@ -88,18 +82,15 @@ const ResultsPage = () => {
         ? student.examScores.reduce((sum, score) => sum + score, 0) / student.examScores.length 
         : 0;
       
-      // Use total scores if available, otherwise use subject average
       let totalAverage;
       if (student.totalScores.length > 0) {
         totalAverage = student.totalScores.reduce((sum, score) => sum + score, 0) / student.totalScores.length;
       } else {
-        // Calculate from subject totals
         totalAverage = student.subjectCount > 0 
           ? student.totalScoreSum / student.subjectCount 
           : 0;
       }
       
-      // Determine overall grade based on total average
       let overallGrade = '';
       if (totalAverage >= 80) overallGrade = 'A';
       else if (totalAverage >= 70) overallGrade = 'B';
@@ -115,14 +106,11 @@ const ResultsPage = () => {
         totalAverage: parseFloat(totalAverage.toFixed(1)),
         overallGrade,
         totalSubjects: student.subjectCount,
-        // Keep totalScoreSum as is (already calculated)
       };
     });
 
-    // Sort by total average (highest first)
     summaries.sort((a, b) => b.totalAverage - a.totalAverage);
     
-    // Add position
     return summaries.map((student, index) => ({
       ...student,
       position: index + 1
@@ -339,7 +327,6 @@ const ResultsPage = () => {
     toast.success('Student summaries exported to CSV');
   };
 
-  // Use the imported print functions
   const handlePrintAllResults = () => {
     if (studentSummaries.length === 0) {
       toast.error('No results to print');
@@ -348,14 +335,12 @@ const ResultsPage = () => {
     printAllResults(selectedClass, selectedTerm, academicYear, studentSummaries, classStatistics, filteredResults);
   };
 
-  // NEW: Function to handle individual student result printing
   const handlePrintStudentResult = (student) => {
     if (!student) {
       toast.error('No student data available for printing');
       return;
     }
 
-    // Get all subjects for this student
     const studentAllSubjects = filteredResults.filter(r => r.studentId === student.studentId);
     
     if (studentAllSubjects.length === 0) {
@@ -363,10 +348,8 @@ const ResultsPage = () => {
       return;
     }
 
-    // Calculate student stats
     const studentStats = calculateStudentStats(studentAllSubjects);
     
-    // Set PDF data for modal or direct printing
     setPdfData({
       student,
       term: selectedTerm,
@@ -381,7 +364,6 @@ const ResultsPage = () => {
     });
   };
 
-  // NEW: Function to calculate student stats for PDF
   const calculateStudentStats = (studentAllSubjects) => {
     if (!studentAllSubjects || studentAllSubjects.length === 0) return null;
     
@@ -396,7 +378,6 @@ const ResultsPage = () => {
       sum + (parseFloat(subj.examScore) || 0), 0
     );
     
-    // Calculate total marks out of maximum (100 per subject)
     const totalMaximumMarks = totalSubjects * 100;
     const totalObtainedMarks = studentAllSubjects.reduce((sum, subj) => 
       sum + (parseFloat(subj.totalScore) || 0), 0
@@ -442,7 +423,6 @@ const ResultsPage = () => {
     return 'text-gray-400';
   };
 
-  // NEW: PDF Modal Component
   const PDFModal = ({ pdfData, onClose }) => {
     if (!pdfData) return null;
 
@@ -462,8 +442,6 @@ const ResultsPage = () => {
           </div>
           
           <div className="p-4 h-[calc(90vh-120px)] overflow-y-auto">
-          
-            
             <ResultsPDFGenerator
               student={pdfData.student}
               term={pdfData.term}
@@ -543,7 +521,7 @@ const ResultsPage = () => {
         getScoreColorClass={getScoreColorClass}
         exportToCSV={exportToCSV}
         printAllResults={handlePrintAllResults}
-        printStudentResult={handlePrintStudentResult} // Pass the print function
+        printStudentResult={handlePrintStudentResult}
       />
 
       <ResultsModals
@@ -555,6 +533,40 @@ const ResultsPage = () => {
         filteredResults={filteredResults}
         studentSummaries={studentSummaries}
       />
+
+      {/* Results Entry Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-xl font-bold text-gray-800">Enter/Edit Results</h3>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setSelectedResult(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="h-[calc(90vh-64px)]">
+              <ResultsForm
+                onClose={() => {
+                  setShowForm(false);
+                  setSelectedResult(null);
+                }}
+                onResultsSaved={handleResultSaved}
+                initialData={selectedResult || {
+                  className: selectedClass,
+                  term: selectedTerm,
+                  academicYear: academicYear
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PDF Modal */}
       {pdfData && <PDFModal pdfData={pdfData} onClose={() => setPdfData(null)} />}

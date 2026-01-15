@@ -45,13 +45,21 @@ const ResultsHeader = ({
         </div>
         
         <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 flex items-center gap-2 transition-all"
-          >
-            <FiPlus />
-            Enter Results
-          </button>
+<button
+  onClick={() => {
+    // Pass current selection as initial data
+    const initialData = {
+      className: selectedClass,
+      term: selectedTerm,
+      academicYear: academicYear
+    };
+    setShowForm(initialData);
+  }}
+  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 flex items-center gap-2 transition-all"
+>
+  <FiPlus />
+  Enter Results
+</button>
           
           <button
             onClick={exportToCSV}
