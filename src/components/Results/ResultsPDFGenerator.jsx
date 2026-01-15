@@ -530,7 +530,7 @@ const ResultsPDFGenerator = ({
                 fontSize: '16px', 
                 fontWeight: 'bold', 
                 color: '#1e40af', 
-                marginBottom: '4px',
+                marginBottom: '1px',
                 lineHeight: '1.1'
               }}>
                 KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C)
@@ -579,7 +579,7 @@ const ResultsPDFGenerator = ({
           </div>
 
           {/* Result Sheet Title */}
-          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1px' }}>
             <h2 style={{ 
               fontSize: '14px', 
               fontWeight: 'bold', 
@@ -802,95 +802,178 @@ const ResultsPDFGenerator = ({
               </table>
             </div>
           </div>
-          {/* Grading System and Class Statistics */}
-        <div className="mb-6 grid grid-cols-2 gap-6">
-          {/* Grading System */}
-          <div>
-            <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e40af', marginBottom: '8px' }}>
-              GRADING SYSTEM
-            </h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', fontSize: '10px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f3f4f6' }}>
-                  <th style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'left' }}>GRADE</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'left' }}>SCORE RANGE</th>
-                  <th style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'left' }}>REMARK</th>
-                </tr>
-              </thead>
-              <tbody>
-                {gradingSystem.map((grade, index) => (
-                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white' }}>
-                    <td style={{ border: '1px solid #d1d5db', padding: '4px', textAlign: 'center', fontWeight: 'bold' }}>{grade.grade}</td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '4px' }}>{grade.score}</td>
-                    <td style={{ border: '1px solid #d1d5db', padding: '4px' }}>{grade.remark}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+{/* Grading System, Comments and Signatures Section */}
+<div style={{ marginBottom: '12px' }}>
+  <h3 style={{ 
+    fontSize: '12px', 
+    fontWeight: 'bold', 
+    color: '#1e40af', 
+    marginBottom: '6px',
+    textTransform: 'uppercase'
+  }}>
+    GRADING SYSTEM
+  </h3>
+  <table style={{ 
+    width: '100%', 
+    borderCollapse: 'collapse', 
+    border: '1px solid #d1d5db',
+    marginBottom: '12px',
+    fontSize: '8px'
+  }}>
+    <thead>
+      <tr style={{ backgroundColor: '#f3f4f6' }}>
+        <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'left', fontSize: '8px' }}>GRADE</th>
+        <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'left', fontSize: '8px' }}>SCORE RANGE</th>
+        <th style={{ border: '1px solid #d1d5db', padding: '3px', textAlign: 'left', fontSize: '8px' }}>REMARK</th>
+      </tr>
+    </thead>
+    <tbody>
+      {gradingSystem.map((grade, index) => (
+        <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#f9fafb' : 'white' }}>
+          <td style={{ 
+            border: '1px solid #d1d5db', 
+            padding: '3px', 
+            textAlign: 'center', 
+            fontWeight: 'bold',
+            fontSize: '9px'
+          }}>{grade.grade}</td>
+          <td style={{ border: '1px solid #d1d5db', padding: '3px', fontSize: '8px' }}>{grade.score}</td>
+          <td style={{ border: '1px solid #d1d5db', padding: '3px', fontSize: '8px' }}>{grade.remark}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
 
-          {/* Comments Section */}
+  {/* Comments Section - Compact */}
+  <div style={{ 
+    display: 'grid', 
+    gridTemplateColumns: '1fr 1fr', 
+    gap: '12px',
+    marginBottom: '12px'
+  }}>
+    {/* Class Teacher's Comment */}
+    <div>
+      <div style={{ marginBottom: '6px' }}>
+        <h3 style={{ 
+          fontSize: '10px', 
+          fontWeight: 'bold', 
+          color: '#1e40af', 
+          marginBottom: '4px'
+        }}>
+          Class Teacher's Comment:
+        </h3>
+        <div style={{ 
+          minHeight: '30px', 
+          borderBottom: '1px solid #d1d5db',
+          paddingBottom: '2px'
+        }}></div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          marginTop: '12px',
+          fontSize: '8px'
+        }}>
           <div>
-            <div style={{ marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e40af', marginBottom: '6px' }}>
-                Class Teacher's Comment:
-              </h3>
-              <div style={{ 
-                minHeight: '40px', 
-                borderBottom: '1px solid #d1d5db', 
-                paddingBottom: '4px',
-                marginBottom: '8px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-                  <div>
-                    <div>Name:</div>
-                    <div style={{ marginTop: '20px' }}>Sign & Date:</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e40af', marginBottom: '6px' }}>
-                Head Teacher's Comment:
-              </h3>
-              <div style={{ 
-                minHeight: '40px', 
-                borderBottom: '1px solid #d1d5db', 
-                paddingBottom: '4px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-                  <div>
-                    <div>Name:</div>
-                    <div style={{ marginTop: '20px' }}>Sign & Date:</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div>Name:</div>
+            <div style={{ marginTop: '12px' }}>Sign & Date:</div>
           </div>
         </div>
-
-        {/* Signatures Section */}
-        <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #d1d5db' }}>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '4px', marginTop: '40px' }}>
-                <div style={{ fontWeight: '600', color: '#374151' }}>Class Teacher's Signature</div>
-              </div>
-            </div>
-            <div className="text-center">
-              <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '4px', marginTop: '40px' }}>
-                <div style={{ fontWeight: '600', color: '#374151' }}>Principal's Signature</div>
-              </div>
-            </div>
-            <div className="text-center">
-              <div style={{ borderTop: '1px solid #9ca3af', paddingTop: '4px', marginTop: '40px' }}>
-                <div style={{ fontWeight: '600', color: '#374151' }}>Parent's Signature</div>
-                <div style={{ fontSize: '9px', color: '#6b7280', marginTop: '2px' }}>(Received & Acknowledged)</div>
-              </div>
-            </div>
+      </div>
+    </div>
+    
+    {/* Head Teacher's Comment */}
+    <div>
+      <div style={{ marginBottom: '6px' }}>
+        <h3 style={{ 
+          fontSize: '10px', 
+          fontWeight: 'bold', 
+          color: '#1e40af', 
+          marginBottom: '4px'
+        }}>
+          Head Teacher's Comment:
+        </h3>
+        <div style={{ 
+          minHeight: '30px', 
+          borderBottom: '1px solid #d1d5db',
+          paddingBottom: '2px'
+        }}></div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          marginTop: '12px',
+          fontSize: '8px'
+        }}>
+          <div>
+            <div>Name:</div>
+            <div style={{ marginTop: '12px' }}>Sign & Date:</div>
           </div>
-        </div> 
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Signatures Section - Compact */}
+  <div style={{ 
+    marginTop: '8px', 
+    paddingTop: '8px', 
+    borderTop: '1px solid #d1d5db' 
+  }}>
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: 'repeat(3, 1fr)', 
+      gap: '8px',
+      fontSize: '8px'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          borderTop: '1px solid #9ca3af', 
+          paddingTop: '3px', 
+          marginTop: '25px',
+          fontSize: '8px'
+        }}>
+          <div style={{ fontWeight: '600', color: '#374151' }}>Class Teacher's Signature</div>
+        </div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          borderTop: '1px solid #9ca3af', 
+          paddingTop: '3px', 
+          marginTop: '25px',
+          fontSize: '8px'
+        }}>
+          <div style={{ fontWeight: '600', color: '#374151' }}>Principal's Signature</div>
+        </div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          borderTop: '1px solid #9ca3af', 
+          paddingTop: '3px', 
+          marginTop: '25px',
+          fontSize: '8px'
+        }}>
+          <div style={{ fontWeight: '600', color: '#374151' }}>Parent's Signature</div>
+          <div style={{ fontSize: '7px', color: '#6b7280', marginTop: '1px' }}>
+            (Received & Acknowledged)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Footer */}
+<div style={{ 
+  marginTop: '10px', 
+  paddingTop: '8px', 
+  borderTop: '1px solid #d1d5db',
+  textAlign: 'center', 
+  fontSize: '7px', 
+  color: '#6b7280' 
+}}>
+  <p>This is a computer-generated document. No signature is required for authentication.</p>
+  <p style={{ marginTop: '1px' }}>KAMALUDEEN COMPREHENSIVE COLLEGE (K.C.C) - "Knowledge is power"</p>
+  <p style={{ marginTop: '1px' }}>Result generated on: {currentDate}</p>
+</div>
 
           {/* Footer */}
           <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '8px', color: '#6b7280' }}>
