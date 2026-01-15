@@ -659,33 +659,6 @@ const ResultsTableCompact = () => {
             </div>
           </div>
         </div>
-
-        {/* Statistics */}
-        {students.length > 0 && (
-          <div className="p-3 bg-white border-b">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="bg-blue-50 p-2 rounded-lg">
-                <div className="text-blue-700 font-medium">Students</div>
-                <div className="text-lg font-bold text-blue-900">{students.length}</div>
-              </div>
-              <div className="bg-green-50 p-2 rounded-lg">
-                <div className="text-green-700 font-medium">Completed</div>
-                <div className="text-lg font-bold text-green-900">{statistics.completed}/{statistics.total}</div>
-              </div>
-              <div className="bg-purple-50 p-2 rounded-lg">
-                <div className="text-purple-700 font-medium">Average</div>
-                <div className={`text-lg font-bold ${statistics.averageScore >= 50 ? 'text-purple-900' : 'text-red-900'}`}>
-                  {statistics.averageScore}%
-                </div>
-              </div>
-              <div className="bg-yellow-50 p-2 rounded-lg">
-                <div className="text-yellow-700 font-medium">Pass Rate</div>
-                <div className="text-lg font-bold text-yellow-900">{statistics.passRate}%</div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-3">
           {isLoading ? (
