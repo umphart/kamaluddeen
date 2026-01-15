@@ -534,39 +534,29 @@ const ResultsPage = () => {
         studentSummaries={studentSummaries}
       />
 
-      {/* Results Entry Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-xl font-bold text-gray-800">Enter/Edit Results</h3>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setSelectedResult(null);
-                }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-            <div className="h-[calc(90vh-64px)]">
-              <ResultsForm
-                onClose={() => {
-                  setShowForm(false);
-                  setSelectedResult(null);
-                }}
-                onResultsSaved={handleResultSaved}
-                initialData={selectedResult || {
-                  className: selectedClass,
-                  term: selectedTerm,
-                  academicYear: academicYear
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+
+
+{/* Results Entry Form Modal */}
+{showForm && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden">
+      <div className="h-full">
+        <ResultsForm
+          onClose={() => {
+            setShowForm(false);
+            setSelectedResult(null);
+          }}
+          onResultsSaved={handleResultSaved}
+          initialData={selectedResult || {
+            className: selectedClass,
+            term: selectedTerm,
+            academicYear: academicYear
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)}
 
       {/* PDF Modal */}
       {pdfData && <PDFModal pdfData={pdfData} onClose={() => setPdfData(null)} />}
