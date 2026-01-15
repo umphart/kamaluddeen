@@ -10,6 +10,16 @@ import { FiBookOpen, FiX, FiSave, FiDownload, FiUpload } from 'react-icons/fi';
 const FormErrorBoundary = ({ children }) => {
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState(null);
+const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+  
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
   const handleReset = () => {
     setHasError(false);
@@ -65,14 +75,30 @@ const FormHeader = ({ selectedClass, selectedTerm, academicYear, onClose }) => (
 );
 
 const ClassSelector = ({ selectedClass, setSelectedClass, availableClasses, isLoading }) => (
-  <div className="mb-3">
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+  <div style={{ marginBottom: '12px' }}>
+    <label style={{ 
+      display: 'block', 
+      fontSize: '0.875rem', 
+      fontWeight: '500', 
+      color: '#374151', 
+      marginBottom: '4px' 
+    }}>
       Select Class
     </label>
     <select
       value={selectedClass}
       onChange={(e) => setSelectedClass(e.target.value)}
-      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      style={{
+        width: '100%',
+        padding: '8px 12px',
+        fontSize: '0.875rem',
+        border: '1px solid #d1d5db',
+        borderRadius: '8px',
+        outline: 'none',
+        transition: 'all 0.2s'
+      }}
+      onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
       disabled={isLoading}
     >
       <option value="">Select a class</option>
@@ -84,14 +110,30 @@ const ClassSelector = ({ selectedClass, setSelectedClass, availableClasses, isLo
 );
 
 const TermSelector = ({ selectedTerm, setSelectedTerm }) => (
-  <div className="mb-3">
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+  <div style={{ marginBottom: '12px' }}>
+    <label style={{ 
+      display: 'block', 
+      fontSize: '0.875rem', 
+      fontWeight: '500', 
+      color: '#374151', 
+      marginBottom: '4px' 
+    }}>
       Select Term
     </label>
     <select
       value={selectedTerm}
       onChange={(e) => setSelectedTerm(e.target.value)}
-      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      style={{
+        width: '100%',
+        padding: '8px 12px',
+        fontSize: '0.875rem',
+        border: '1px solid #d1d5db',
+        borderRadius: '8px',
+        outline: 'none',
+        transition: 'all 0.2s'
+      }}
+      onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
     >
       <option value="1st Term">1st Term</option>
       <option value="2nd Term">2nd Term</option>
@@ -101,15 +143,31 @@ const TermSelector = ({ selectedTerm, setSelectedTerm }) => (
 );
 
 const AcademicYearInput = ({ academicYear, setAcademicYear }) => (
-  <div className="mb-3">
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+  <div style={{ marginBottom: '12px' }}>
+    <label style={{ 
+      display: 'block', 
+      fontSize: '0.875rem', 
+      fontWeight: '500', 
+      color: '#374151', 
+      marginBottom: '4px' 
+    }}>
       Academic Year
     </label>
     <input
       type="text"
       value={academicYear}
       onChange={(e) => setAcademicYear(e.target.value)}
-      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      style={{
+        width: '100%',
+        padding: '8px 12px',
+        fontSize: '0.875rem',
+        border: '1px solid #d1d5db',
+        borderRadius: '8px',
+        outline: 'none',
+        transition: 'all 0.2s'
+      }}
+      onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
       placeholder="YYYY/YYYY"
     />
   </div>
@@ -385,29 +443,7 @@ const initializeResults = (students, subjects, existingResults) => {
     toast.success('Results exported to CSV');
   };
 
-  // Calculate statistics
-  const statistics = useMemo(() => {
-    const resultsWithScores = results.filter(r => r.totalScore > 0);
-    const total = results.length;
-    const completed = resultsWithScores.length;
-    const pending = total - completed;
-    
-    const averageScore = completed > 0 
-      ? resultsWithScores.reduce((sum, r) => sum + r.totalScore, 0) / completed 
-      : 0;
-    
-    const passRate = completed > 0
-      ? (resultsWithScores.filter(r => r.grade && ['A', 'B', 'C', 'D', 'E'].includes(r.grade)).length / completed) * 100
-      : 0;
-
-    return {
-      total,
-      pending,
-      completed,
-      averageScore: parseFloat(averageScore.toFixed(1)),
-      passRate: parseFloat(passRate.toFixed(1))
-    };
-  }, [results]);
+ 
 
   const handleSave = async () => {
     try {
@@ -607,58 +643,134 @@ const ResultsTableCompact = () => {
       <div className="flex flex-col h-full bg-gray-50">
         {/* Header */}
         <FormHeader 
-          selectedClass={selectedClass}
-          selectedTerm={selectedTerm}
-          academicYear={academicYear}
-          onClose={onClose}
-        />
+  selectedClass={selectedClass}
+  selectedTerm={selectedTerm}
+  academicYear={academicYear}
+  onClose={onClose}
+/>
 
-        {/* Control Panel */}
-        <div className="p-3 bg-white border-b">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <ClassSelector 
-              selectedClass={selectedClass}
-              setSelectedClass={setSelectedClass}
-              availableClasses={availableClasses}
-              isLoading={isLoading}
-            />
-            
-            <TermSelector 
-              selectedTerm={selectedTerm}
-              setSelectedTerm={setSelectedTerm}
-            />
-            
-            <AcademicYearInput 
-              academicYear={academicYear}
-              setAcademicYear={setAcademicYear}
-            />
-          </div>
-          
-          <div className="mt-1 flex justify-between items-center">
-            <button
-              onClick={loadClassData}
-              disabled={isLoading}
-              className="px-1 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
-            >
-              {isLoading ? 'Loading...' : 'Load Data'}
-            </button>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-1 py-1 text-xs rounded-lg ${viewMode === 'grid' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700'}`}
-              >
-                Compact View
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-1 py-1 text-xs rounded-lg ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700'}`}
-              >
-                Student View
-              </button>
-            </div>
-          </div>
-        </div>
+{/* Control Panel */}
+<div style={{
+  padding: '12px',
+  backgroundColor: '#ffffff',
+  borderBottom: '1px solid #e5e7eb'
+}}>
+  <div style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(1, 1fr)',
+    gap: '12px',
+    width: '100%'
+  }}>
+    <div style={{
+      gridColumn: 'span 1'
+    }}>
+      <ClassSelector 
+        selectedClass={selectedClass}
+        setSelectedClass={setSelectedClass}
+        availableClasses={availableClasses}
+        isLoading={isLoading}
+      />
+    </div>
+    
+    <div style={{
+      gridColumn: 'span 1'
+    }}>
+      <TermSelector 
+        selectedTerm={selectedTerm}
+        setSelectedTerm={setSelectedTerm}
+      />
+    </div>
+    
+    <div style={{
+      gridColumn: 'span 1'
+    }}>
+      <AcademicYearInput 
+        academicYear={academicYear}
+        setAcademicYear={setAcademicYear}
+      />
+    </div>
+  </div>
+  
+  <div style={{
+    marginTop: '4px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%'
+  }}>
+    <button
+      onClick={loadClassData}
+      disabled={isLoading}
+      style={{
+        padding: '4px 8px',
+        backgroundColor: isLoading ? '#9ca3af' : '#4f46e5',
+        color: '#ffffff',
+        borderRadius: '8px',
+        border: 'none',
+        cursor: isLoading ? 'not-allowed' : 'pointer',
+        opacity: isLoading ? 0.5 : 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        fontSize: '0.875rem',
+        transition: 'background-color 0.2s'
+      }}
+      onMouseEnter={(e) => !isLoading && (e.target.style.backgroundColor = '#4338ca')}
+      onMouseLeave={(e) => !isLoading && (e.target.style.backgroundColor = '#4f46e5')}
+    >
+      {isLoading ? 'Loading...' : 'Load Data'}
+    </button>
+    
+    <div style={{
+      display: 'flex',
+      gap: '8px'
+    }}>
+      <button
+        onClick={() => setViewMode('grid')}
+        style={{
+          padding: '4px 8px',
+          backgroundColor: viewMode === 'grid' ? '#e0e7ff' : '#f3f4f6',
+          color: viewMode === 'grid' ? '#3730a3' : '#374151',
+          borderRadius: '8px',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.75rem',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = viewMode === 'grid' ? '#dbeafe' : '#e5e7eb';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = viewMode === 'grid' ? '#e0e7ff' : '#f3f4f6';
+        }}
+      >
+        Compact View
+      </button>
+      <button
+        onClick={() => setViewMode('list')}
+        style={{
+          padding: '4px 8px',
+          backgroundColor: viewMode === 'list' ? '#e0e7ff' : '#f3f4f6',
+          color: viewMode === 'list' ? '#3730a3' : '#374151',
+          borderRadius: '8px',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.75rem',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = viewMode === 'list' ? '#dbeafe' : '#e5e7eb';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = viewMode === 'list' ? '#e0e7ff' : '#f3f4f6';
+        }}
+      >
+        Student View
+      </button>
+    </div>
+  </div>
+</div>
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-3">
           {isLoading ? (
