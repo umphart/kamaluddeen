@@ -25,7 +25,7 @@ import "./Dashboard.css";
 
 // School Information
 const SCHOOL_INFO = {
-   name: "KAMALUDEEN COMPREHENSIVE COLLEGE",
+  name: "KAMALUDEEN COMPREHENSIVE COLLEGE",
   motto: "Knowledge is Power",
   address: "Kwanar Yashi along Hayin Dae Muntsira Kano, Nigeria",
   phone: "08065662896",
@@ -59,6 +59,17 @@ const Dashboard = () => {
         teacherService.getAllTeachers()
       ]);
 
+      console.log("📊 Dashboard Data Loaded:");
+      console.log("Total Students:", students.length);
+      console.log("Total Teachers:", teachers.length);
+
+      // Debug: Check first student data structure
+      if (students.length > 0) {
+        console.log("Sample Student Data:", students[0]);
+        console.log("Student className:", students[0]?.className);
+        console.log("Student level:", students[0]?.level);
+      }
+
       // Update stats
       setStats(prev => prev.map(stat => {
         if (stat.title === "Total Students") return { ...stat, value: students.length };
@@ -84,6 +95,7 @@ const Dashboard = () => {
 
       // Calculate class gender distribution
       const classDistribution = calculateClassGenderDistribution(students);
+      console.log("Class Distribution Data:", classDistribution);
       setClassGenderDistribution(classDistribution);
 
     } catch (error) {
@@ -101,13 +113,42 @@ const Dashboard = () => {
     ];
 
     return classOrder.map(className => {
-      const classStudents = students.filter(s => s.currentClass === className);
+      // FIXED: Changed from s.currentClass to s.className
+      const classStudents = students.filter(s => s.className === className);
+      
+      console.log(`Class: ${className}, Students: ${classStudents.length}`);
+      
       return {
         class: className,
         male: classStudents.filter(s => s.gender === 'Male').length,
-        female: classStudents.filter(s => s.gender === 'Female').length
+        female: classStudents.filter(s => s.gender === 'Female').length,
+        total: classStudents.length
       };
     });
+  };
+
+  // Custom tooltip for better display
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
+          <p className="font-semibold mb-2">Class: {label}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} className="flex items-center gap-2" style={{ color: entry.color }}>
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+              {entry.name}: <span className="font-semibold">{entry.value} students</span>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom legend formatter
+  const renderColorfulLegendText = (value, entry) => {
+    const { color } = entry;
+    return <span style={{ color }}>{value}</span>;
   };
 
   return (
@@ -204,39 +245,72 @@ const Dashboard = () => {
 
             {/* Class Gender Distribution */}
             <div className="dashboard-card full-width">
-              <h3 className="card-title">Class Gender Distribution</h3>
-              <ResponsiveContainer width="100%" height={360}>
-                <BarChart
-                  data={classGenderDistribution}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 50 }}
-                >
-                  <XAxis
-                    dataKey="class"
-                    angle={-30}
-                    textAnchor="end"
-                    interval={0}
-                    height={60}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value, name) => [`${value} students`, name]}
-                    labelFormatter={(label) => `Class: ${label}`}
-                  />
-                  <Legend />
-                  <Bar 
-                    dataKey="male" 
-                    name="Male Students" 
-                    fill="#2563eb" 
-                    radius={[6, 6, 0, 0]} 
-                  />
-                  <Bar 
-                    dataKey="female" 
-                    name="Female Students" 
-                    fill="#ec4899" 
-                    radius={[6, 6, 0, 0]} 
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="card-title">Class Gender Distribution</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                    <span className="text-sm text-gray-600">Male Students</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-pink-500"></div>
+                    <span className="text-sm text-gray-600">Female Students</span>
+                  </div>
+                </div>
+              </div>
+              
+              {classGenderDistribution.filter(item => item.total > 0).length > 0 ? (
+                <ResponsiveContainer width="100%" height={360}>
+                  <BarChart
+                    data={classGenderDistribution.filter(item => item.total > 0)}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 60 }}
+                  >
+                    <XAxis
+                      dataKey="class"
+                      angle={-30}
+                      textAnchor="end"
+                      interval={0}
+                      height={80}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      label={{ 
+                        value: 'Number of Students', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        offset: -5
+                      }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend 
+                      verticalAlign="top"
+                      align="right"
+                      iconType="circle"
+                      formatter={renderColorfulLegendText}
+                    />
+                    <Bar 
+                      dataKey="male" 
+                      name="Male Students" 
+                      fill="#2563eb" 
+                      radius={[4, 4, 0, 0]} 
+                    />
+                    <Bar 
+                      dataKey="female" 
+                      name="Female Students" 
+                      fill="#ec4899" 
+                      radius={[4, 4, 0, 0]} 
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64">
+                  <div className="text-5xl mb-4">📊</div>
+                  <p className="text-lg font-medium text-gray-700 mb-2">No Class Data Available</p>
+                  <p className="text-gray-500 text-center max-w-md">
+                    Add students with class assignments to see gender distribution across classes
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </>
