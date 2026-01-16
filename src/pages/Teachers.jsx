@@ -51,10 +51,30 @@ const loadSubjects = async () => {
   }, []);
 
   // Filter teachers whenever filters or teachers change
-  useEffect(() => {
-    filterTeachers();
-  }, [teachers, searchTerm, selectedStatus]);
+useEffect(() => {
+  const filterTeachers = () => {
+    let filtered = [...teachers];
 
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(teacher =>
+        teacher.fullName?.toLowerCase().includes(term) ||
+        teacher.staffId?.toLowerCase().includes(term) ||
+        teacher.email?.toLowerCase().includes(term) ||
+        teacher.phone?.includes(searchTerm) ||
+        teacher.qualification?.toLowerCase().includes(term)
+      );
+    }
+
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(teacher => teacher.status === selectedStatus);
+    }
+
+    setFilteredTeachers(filtered);
+  };
+
+  filterTeachers();
+}, [teachers, searchTerm, selectedStatus]); // Now all dependencies are declared
   const loadTeachers = async () => {
     try {
       setIsLoading(true);

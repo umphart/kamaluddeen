@@ -1,6 +1,5 @@
 // src/pages/Settings.jsx
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import './Settings.css';
 
 const Settings = () => {
@@ -72,7 +71,6 @@ const Settings = () => {
   const [saveStatus, setSaveStatus] = useState('');
 
   const userRoles = ['Admin', 'Principal', 'Teacher', 'Accountant', 'Registrar', 'Parent'];
-  const statuses = ['Active', 'Inactive', 'Suspended'];
   const timezones = ['Africa/Lagos', 'Africa/Abuja', 'UTC', 'America/New_York', 'Europe/London'];
   const languages = ['English', 'French', 'Arabic', 'Hausa', 'Yoruba', 'Igbo'];
   const themes = ['light', 'dark', 'auto'];
