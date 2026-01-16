@@ -39,72 +39,71 @@ export class TeacherService {
   }
 
   // Upload photo to Supabase Storage
-  async uploadTeacherPhoto(photoData, staffId) {
-    try {
-      console.log('📸 Starting teacher photo upload for:', staffId);
+async uploadTeacherPhoto(photoData, staffId) {
+  try {
+    console.log('📸 Starting teacher photo upload for:', staffId);
+    
+    // Generate filename
+    const timestamp = Date.now();
+    const cleanStaffId = staffId.replace(/[/]/g, '_');  // 移除不必要的转义
+    const fileName = `teacher_${cleanStaffId}_${timestamp}.jpg`;
+    
+    let blob;
+    let contentType = 'image/jpeg';
+    
+    if (photoData instanceof File) {
+      // File object
+      blob = photoData;
+      contentType = photoData.type || 'image/jpeg';
+    } else if (typeof photoData === 'string' && photoData.startsWith('data:image')) {
+      // Base64 string
+      const base64Data = photoData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
       
-      // Generate filename
-      const timestamp = Date.now();
-      const cleanStaffId = staffId.replace(/[\/]/g, '_');
-      const fileName = `teacher_${cleanStaffId}_${timestamp}.jpg`;
-      
-      let blob;
-      let contentType = 'image/jpeg';
-      
-      if (photoData instanceof File) {
-        // File object
-        blob = photoData;
-        contentType = photoData.type || 'image/jpeg';
-      } else if (typeof photoData === 'string' && photoData.startsWith('data:image')) {
-        // Base64 string
-        const base64Data = photoData.split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        
-        const byteArray = new Uint8Array(byteNumbers);
-        const mimeType = photoData.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
-        contentType = mimeType;
-        blob = new Blob([byteArray], { type: contentType });
-      } else {
-        console.warn('Invalid photo format:', typeof photoData);
-        return null;
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       
-      console.log('Uploading teacher photo to Supabase Storage...');
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('teacher-photos')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: contentType
-        });
-
-      if (uploadError) {
-        console.error('Teacher photo upload error:', uploadError);
-        return null;
-      }
-      
-      console.log('Teacher photo uploaded successfully:', uploadData);
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('teacher-photos')
-        .getPublicUrl(fileName);
-      
-      return urlData.publicUrl;
-      
-    } catch (error) {
-      console.error('Error uploading teacher photo:', error);
+      const byteArray = new Uint8Array(byteNumbers);
+      const mimeType = photoData.match(/data:(.*);base64/)?.[1] || 'image/jpeg';
+      contentType = mimeType;
+      blob = new Blob([byteArray], { type: contentType });
+    } else {
+      console.warn('Invalid photo format:', typeof photoData);
       return null;
     }
-  }
+    
+    console.log('Uploading teacher photo to Supabase Storage...');
+    
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('teacher-photos')
+      .upload(fileName, blob, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: contentType
+      });
 
+    if (uploadError) {
+      console.error('Teacher photo upload error:', uploadError);
+      return null;
+    }
+    
+    console.log('Teacher photo uploaded successfully:', uploadData);
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('teacher-photos')
+      .getPublicUrl(fileName);
+    
+    return urlData.publicUrl;
+    
+  } catch (error) {
+    console.error('Error uploading teacher photo:', error);
+    return null;
+  }
+}
   // Add new teacher
   async addTeacher(teacherData) {
     try {
