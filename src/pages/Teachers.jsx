@@ -1,5 +1,5 @@
 // src/pages/Teachers.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import TeacherForm from '../components/Teachers/TeacherForm';
 import TeachersTable from '../components/Teachers/TeachersTable';
 import TeachersFilters from '../components/Teachers/TeachersFilters';
@@ -89,26 +89,30 @@ useEffect(() => {
     }
   };
 
-  const filterTeachers = () => {
-    let filtered = [...teachers];
+const filterTeachers = useCallback(() => {
+  let filtered = [...teachers];
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(teacher =>
-        teacher.fullName?.toLowerCase().includes(term) ||
-        teacher.staffId?.toLowerCase().includes(term) ||
-        teacher.email?.toLowerCase().includes(term) ||
-        teacher.phone?.includes(searchTerm) ||
-        teacher.qualification?.toLowerCase().includes(term)
-      );
-    }
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = filtered.filter(teacher =>
+      teacher.fullName?.toLowerCase().includes(term) ||
+      teacher.staffId?.toLowerCase().includes(term) ||
+      teacher.email?.toLowerCase().includes(term) ||
+      teacher.phone?.includes(searchTerm) ||
+      teacher.qualification?.toLowerCase().includes(term)
+    );
+  }
 
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(teacher => teacher.status === selectedStatus);
-    }
+  if (selectedStatus !== 'all') {
+    filtered = filtered.filter(teacher => teacher.status === selectedStatus);
+  }
 
-    setFilteredTeachers(filtered);
-  };
+  setFilteredTeachers(filtered);
+}, [teachers, searchTerm, selectedStatus]); // Add dependencies
+
+useEffect(() => {
+  filterTeachers();
+}, [filterTeachers]); // Now it's in dependencies
 
   const clearFilters = () => {
     setSearchTerm('');
