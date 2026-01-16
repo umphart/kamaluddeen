@@ -3,9 +3,6 @@ import {
   FaUserGraduate,
   FaChalkboardTeacher,
   FaSchool,
-  FiMapPin,
-  FiPhone,
-  FiMail
 } from "react-icons/fa";
 import {
   PieChart,

@@ -20,7 +20,6 @@ import {
 } from 'react-icons/fa';
 import { 
   MdSchool,
-  MdAssignment
 } from 'react-icons/md';
 import Dashboard from './pages/Dashboard';
 import Admissions from './pages/Admissions';

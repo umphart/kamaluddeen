@@ -5,8 +5,6 @@ import StudentForm from '../components/Students/StudentForm';
 import { 
   FiSearch, 
   FiFilter, 
-  FiDownload, 
-  FiEye, 
   FiEdit, 
   FiUserPlus, 
   FiPrinter,
@@ -17,7 +15,7 @@ import {
   FiUser,
   FiCalendar,
   FiPhone,
-  FiMail,
+  
   FiMapPin,
   FiRefreshCw,
   FiChevronRight,
@@ -27,7 +25,6 @@ import {
 import { 
   MdClass, 
   MdSchool,
-  MdAccountBalance,
   MdPerson,
   MdChildCare,
   MdChildFriendly,
@@ -178,21 +175,6 @@ const Admissions = () => {
       JS: safeFilter(students, s => s.level === 'JS').length,
     }
   };
-
-  // Get all unique classes from students
-  const allClasses = [...new Set(
-    safeFilter(students, s => s && s.className)
-      .map(s => s.className)
-      .filter(Boolean)
-  )].sort();
-
-  // View student details
-  const viewStudentDetails = (student) => {
-    setSelectedStudent(student);
-    // You could show a details modal here if needed
-    console.log('View student:', student);
-  };
-
   // Edit student
   const editStudent = (student) => {
     setSelectedStudent(student);

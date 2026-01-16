@@ -152,22 +152,23 @@ const ResultsPage = () => {
     setAcademicYear(currentYear);
   }, []);
 
- useEffect(() => {
-  loadAvailableClasses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  // Load available classes
+  useEffect(() => {
+    loadAvailableClasses();
+  }, []);
 
-useEffect(() => {
-  if (selectedClass && selectedTerm && academicYear) {
-    loadResults();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [selectedClass, selectedTerm, academicYear]);
+  // Load results when filters change
+  useEffect(() => {
+    if (selectedClass && selectedTerm && academicYear) {
+      loadResults();
+    }
+  }, [selectedClass, selectedTerm, academicYear]);
 
-useEffect(() => {
-  applyFilters();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [results, searchTerm, filters]);
+  // Apply search and filters when they change
+  useEffect(() => {
+    applyFilters();
+  }, [results, searchTerm, filters]);
+
   const loadAvailableClasses = async () => {
     try {
       const allStudents = await studentService.getAllStudents();

@@ -11,7 +11,7 @@ import {
   FiFileText,
   FiRefreshCw,
   FiCalendar,
-  FiLoader
+ 
 } from 'react-icons/fi';
 import { 
   MdClass, 
@@ -72,7 +72,7 @@ const Classes = () => {
 
   useEffect(() => {
     filterStudents();
-  }, [students, searchTerm, selectedClass, selectedLevel]);
+  },);
 
   const loadStudents = async () => {
     try {

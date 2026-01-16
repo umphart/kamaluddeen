@@ -192,7 +192,7 @@ export class AcademicService {
   
   async getAcademicStatistics() {
     try {
-      const [subjects, classes] = await Promise.all([
+      const [subjects, classes, ] = await Promise.all([
         this.getAllSubjects(),
         this.getAllClasses(),
         supabase.from('timetables').select('*')
