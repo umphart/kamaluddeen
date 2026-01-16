@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { FiPrinter, FiDownload } from 'react-icons/fi';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import kccLogo from './kcc.jpeg'; // Import the logo
+import kccLogo from './kcc.jpeg';
 
 const ResultsPDFGenerator = ({
   student,
@@ -14,184 +14,109 @@ const ResultsPDFGenerator = ({
   studentStats
 }) => {
   const componentRef = useRef();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Function to download as PDF
   const handleDownloadPDF = async () => {
     if (!componentRef.current) {
-      console.error('No content to download');
       alert('No content available for download');
       return;
     }
 
     try {
-      // Show loading state
-      const downloadBtn = document.querySelector('[title="Download as PDF"]');
-      const originalText = downloadBtn.innerHTML;
-      downloadBtn.innerHTML = '<span>Generating PDF...</span>';
-      downloadBtn.disabled = true;
-
-      // Get the original element
+      setIsGenerating(true);
+      
       const element = componentRef.current;
       
-      // Create a temporary container for cloning
+      // Create a temporary container
       const tempContainer = document.createElement('div');
       tempContainer.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
+        top: -10000px;
+        left: -10000px;
         width: 210mm;
-        min-height: 297mm;
         background: white;
         z-index: 9999;
-        opacity: 0;
-        pointer-events: none;
       `;
       
       // Clone the element
       const clonedElement = element.cloneNode(true);
       
-      // Apply optimized styles for PDF
+      // Apply styles for PDF
       clonedElement.style.cssText = `
         width: 210mm !important;
         min-height: 297mm !important;
         padding: 10mm 8mm !important;
         margin: 0 !important;
-        box-sizing: border-box !important;
         background: white !important;
-        position: relative !important;
         font-family: 'Times New Roman', serif !important;
         font-size: 10px !important;
+        box-sizing: border-box !important;
       `;
       
-      // Adjust inner elements for better PDF rendering
-      clonedElement.querySelectorAll('*').forEach(el => {
-        // Remove any max-width constraints
-        el.style.maxWidth = 'none !important';
-        el.style.overflow = 'visible !important';
-        
-        // Adjust tables for PDF
-        if (el.tagName === 'TABLE') {
-          el.style.width = '100% !important';
-          el.style.fontSize = '9px !important';
-          el.style.borderCollapse = 'collapse !important';
-        }
-        
-        // Adjust table cells
-        if (el.tagName === 'TD' || el.tagName === 'TH') {
-          el.style.padding = '2px 3px !important';
-          el.style.fontSize = '8px !important';
-        }
-        
-        // Adjust headers
-        if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
-          el.style.margin = '5px 0 !important';
-          el.style.fontSize = el.tagName === 'H1' ? '16px !important' : 
-                             el.tagName === 'H2' ? '14px !important' : 
-                             '12px !important';
-        }
-      });
+      // Remove any existing watermark from clone
+      const watermark = clonedElement.querySelector('[style*="opacity: 0.08"]');
+      if (watermark) {
+        watermark.remove();
+      }
       
       tempContainer.appendChild(clonedElement);
       document.body.appendChild(tempContainer);
 
-      // Wait for images to load
-      await new Promise((resolve) => {
-        const images = clonedElement.getElementsByTagName('img');
-        let loadedCount = 0;
-        const totalImages = images.length;
-        
-        if (totalImages === 0) {
-          resolve();
-          return;
-        }
-        
-        const imageLoaded = () => {
-          loadedCount++;
-          if (loadedCount === totalImages) {
-            resolve();
-          }
-        };
-        
-        Array.from(images).forEach((img) => {
-          if (img.complete) {
-            imageLoaded();
-          } else {
-            img.onload = imageLoaded;
-            img.onerror = imageLoaded;
-          }
-        });
-      });
+      // Wait a moment for rendering
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Calculate optimal scale for A4
-      const A4_WIDTH_MM = 210;
-      const A4_HEIGHT_MM = 297;
-      const PIXELS_PER_MM = 3.78; // Standard conversion
-      const targetWidth = A4_WIDTH_MM * PIXELS_PER_MM;
-      const targetHeight = A4_HEIGHT_MM * PIXELS_PER_MM;
-
-      // Use html2canvas to capture the content
+      // Use html2canvas with optimized settings
       const canvas = await html2canvas(clonedElement, {
-        scale: 1.5, // Lower scale for better performance
+        scale: 1.5,
         useCORS: true,
-        allowTaint: false,
+        allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
-        width: targetWidth,
-        height: clonedElement.scrollHeight,
-        windowWidth: targetWidth,
+        width: 210 * 3.78, // Convert mm to pixels
+        windowWidth: 210 * 3.78,
         onclone: (clonedDoc) => {
-          // Additional styling for cloned document
-          const clonedRoot = clonedDoc.querySelector('.pdf-content');
-          if (clonedRoot) {
-            clonedRoot.style.width = `${targetWidth}px`;
-            clonedRoot.style.minHeight = `${targetHeight}px`;
-          }
+          // Ensure all elements are visible
+          const allElements = clonedDoc.querySelectorAll('*');
+          allElements.forEach(el => {
+            el.style.boxSizing = 'border-box';
+            el.style.maxWidth = 'none';
+          });
         }
       });
 
       // Remove temporary container
       document.body.removeChild(tempContainer);
 
-      // Create a new canvas for watermark
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = canvas.width;
-      finalCanvas.height = canvas.height;
-      const ctx = finalCanvas.getContext('2d');
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      // Draw the original content
-      ctx.drawImage(canvas, 0, 0);
-      
-      // Add watermark
+      // Add watermark after generating the PDF image
+      const ctx = canvas.getContext('2d');
       const watermarkImg = new Image();
-      watermarkImg.crossOrigin = 'anonymous';
       
       await new Promise((resolve) => {
         watermarkImg.onload = () => {
-          // Calculate watermark size (30% of canvas width)
-          const watermarkWidth = finalCanvas.width * 0.3;
+          ctx.globalAlpha = 0.1;
+          const watermarkWidth = canvas.width * 0.4;
           const watermarkHeight = (watermarkImg.height * watermarkWidth) / watermarkImg.width;
-          const x = (finalCanvas.width - watermarkWidth) / 2;
-          const y = (finalCanvas.height - watermarkHeight) / 2;
-          
-          // Set transparency
-          ctx.globalAlpha = 0.08; // 8% opacity
-          
-          // Draw watermark
+          const x = (canvas.width - watermarkWidth) / 2;
+          const y = (canvas.height - watermarkHeight) / 2;
           ctx.drawImage(watermarkImg, x, y, watermarkWidth, watermarkHeight);
-          
-          // Reset opacity
           ctx.globalAlpha = 1;
           resolve();
         };
         
         watermarkImg.onerror = () => {
-          // Fallback: draw text watermark
+          // Text fallback
           ctx.globalAlpha = 0.05;
-          ctx.font = 'bold 80px Times New Roman';
+          ctx.font = 'bold 100px Times New Roman';
           ctx.fillStyle = '#000000';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText('KCC', finalCanvas.width / 2, finalCanvas.height / 2);
+          ctx.fillText('KCC', canvas.width / 2, canvas.height / 2);
           ctx.globalAlpha = 1;
           resolve();
         };
@@ -199,15 +124,7 @@ const ResultsPDFGenerator = ({
         watermarkImg.src = kccLogo;
       });
 
-      // Calculate PDF dimensions
-      const imgWidth = A4_WIDTH_MM;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      // Add image to PDF
-      const imgData = finalCanvas.toDataURL('image/png', 0.9);
+      const imgData = canvas.toDataURL('image/png', 1.0);
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       
       // Save PDF
@@ -217,42 +134,24 @@ const ResultsPDFGenerator = ({
       
       pdf.save(fileName);
 
-      // Reset button state
-      downloadBtn.innerHTML = originalText;
-      downloadBtn.disabled = false;
-
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
-      
-      // Reset button state on error
-      const downloadBtn = document.querySelector('[title="Download as PDF"]');
-      if (downloadBtn) {
-        downloadBtn.innerHTML = '<FiDownload />Download PDF';
-        downloadBtn.disabled = false;
-      }
-      
-      // Clean up any temporary elements
-      const tempElements = document.querySelectorAll('[style*="position: fixed"][style*="z-index: 9999"]');
-      tempElements.forEach(el => document.body.removeChild(el));
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  // Direct print functionality
+  // Direct print functionality (simplified)
   const handleDirectPrint = () => {
     if (!componentRef.current) {
-      console.error('No content to print');
       alert('No content available for printing');
       return;
     }
     
-    // Create a new window for printing
     const printWindow = window.open('', '_blank');
-    
-    // Get the content
     const content = componentRef.current.innerHTML;
     
-    // Create print styles optimized for A4
     const printStyles = `
       <style>
         @media print {
@@ -261,91 +160,28 @@ const ResultsPDFGenerator = ({
             margin: 8mm;
           }
           body {
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Times New Roman', serif;
             font-size: 10px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
             margin: 0;
             padding: 0;
-            width: 100%;
           }
-          .no-print {
-            display: none !important;
-          }
-          
-          /* Optimize tables for printing */
           table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            font-size: 9px !important;
+            font-size: 9px;
+            border-collapse: collapse;
           }
-          
           th, td {
-            padding: 3px 4px !important;
-            border: 1px solid #666 !important;
+            padding: 3px 4px;
           }
-          
-          /* Reduce spacing */
-          .mb-6 { margin-bottom: 8px !important; }
-          .pb-3 { padding-bottom: 4px !important; }
-          .mt-6 { margin-top: 8px !important; }
-          
-          /* Optimize layout */
-          .grid-cols-2 {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 8px !important;
-          }
-          
-          /* Center content */
-          .text-center {
-            text-align: center !important;
-          }
-          
-          /* Ensure proper image scaling */
           img {
-            max-width: 100% !important;
-            height: auto !important;
+            max-width: 100%;
+            height: auto;
           }
         }
-        
-        /* Pre-print styles */
         body {
           width: 210mm;
-          min-height: 297mm;
-          padding: 10mm 8mm;
           margin: 0 auto;
+          padding: 10mm 8mm;
           background: white;
-          font-family: 'Times New Roman', serif;
-          font-size: 10px;
-          box-sizing: border-box;
-        }
-        
-        /* Adjust content for A4 */
-        .pdf-content * {
-          box-sizing: border-box;
-        }
-        
-        /* Make tables compact */
-        table {
-          width: 100%;
-          font-size: 9px;
-          border-collapse: collapse;
-        }
-        
-        th, td {
-          padding: 3px 4px;
-          border: 1px solid #666;
-        }
-        
-        /* Reduce header sizes */
-        h2 {
-          font-size: 14px !important;
-          margin: 5px 0 !important;
-        }
-        
-        h3 {
-          font-size: 12px !important;
-          margin: 4px 0 !important;
         }
       </style>
     `;
@@ -356,20 +192,23 @@ const ResultsPDFGenerator = ({
         <head>
           <title>${student?.studentName || 'Student'} - ${term} Term Result</title>
           <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           ${printStyles}
         </head>
         <body>
-          <div class="pdf-content">
-            ${content}
+          <div style="position: relative;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.1; z-index: 0; pointer-events: none;">
+              <img src="${kccLogo}" alt="Watermark" style="width: 300px; height: auto;" />
+            </div>
+            <div style="position: relative; z-index: 1;">
+              ${content}
+            </div>
           </div>
           <script>
-            // Wait for all images to load before printing
             window.onload = function() {
               setTimeout(() => {
                 window.print();
                 window.close();
-              }, 1000);
+              }, 500);
             };
           </script>
         </body>
@@ -379,14 +218,13 @@ const ResultsPDFGenerator = ({
     printWindow.document.close();
   };
 
-  // Get current date for report
+  // Helper functions (keep as is)
   const currentDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 
-  // Function to get grade remark
   const getGradeRemark = (grade) => {
     switch(grade) {
       case 'A': return 'Excellent';
@@ -399,18 +237,6 @@ const ResultsPDFGenerator = ({
     }
   };
 
-  // Get overall performance remark
-  const getOverallRemark = (average) => {
-    if (!average) return 'No Data Available';
-    if (average >= 80) return 'Excellent Performance';
-    if (average >= 70) return 'Very Good Performance';
-    if (average >= 60) return 'Good Performance';
-    if (average >= 50) return 'Average Performance';
-    if (average >= 40) return 'Below Average';
-    return 'Poor Performance - Needs Improvement';
-  };
-
-  // Helper function for ordinal suffix
   const getOrdinalSuffix = (n) => {
     if (!n) return '';
     const s = ["th", "st", "nd", "rd"];
@@ -418,7 +244,6 @@ const ResultsPDFGenerator = ({
     return s[(v - 20) % 10] || s[v] || s[0];
   };
 
-  // Grading system
   const gradingSystem = [
     { grade: 'A', score: '80 - 100', remark: 'Excellent' },
     { grade: 'B', score: '70 - 79', remark: 'Very Good' },
@@ -434,11 +259,12 @@ const ResultsPDFGenerator = ({
       <div className="flex gap-2 mb-4 no-print">
         <button
           onClick={handleDownloadPDF}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200"
+          disabled={isGenerating}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-all duration-200 disabled:opacity-50"
           title="Download as PDF"
         >
           <FiDownload />
-          Download PDF
+          {isGenerating ? 'Generating...' : 'Download PDF'}
         </button>
         <button
           onClick={handleDirectPrint}
@@ -450,7 +276,7 @@ const ResultsPDFGenerator = ({
         </button>
       </div>
 
-      {/* PDF Content - Optimized for A4 */}
+      {/* PDF Content */}
       <div 
         ref={componentRef} 
         className="pdf-content bg-white border border-gray-200 rounded-lg"
@@ -459,30 +285,33 @@ const ResultsPDFGenerator = ({
           minHeight: '297mm',
           margin: '0 auto',
           padding: '10mm 8mm',
-          fontFamily: 'Times New Roman, serif',
+          fontFamily: "'Times New Roman', serif",
           fontSize: '10px',
           boxSizing: 'border-box',
           position: 'relative'
         }}
       >
-        {/* Centered watermark overlay */}
+        {/* Watermark Background */}
         <div style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '30%',
-          height: 'auto',
-          aspectRatio: '1/1',
-          backgroundImage: `url(${kccLogo})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          opacity: 0.08,
+          width: '40%',
+          opacity: 0.1,
           pointerEvents: 'none',
           zIndex: 0
-        }}></div>
+        }}>
+          <img 
+            src={kccLogo} 
+            alt="Watermark" 
+            style={{ width: '100%', height: 'auto' }}
+            crossOrigin="anonymous"
+          />
+        </div>
 
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Content wrapper to bring content above watermark */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           {/* School Header */}
@@ -900,6 +729,7 @@ const ResultsPDFGenerator = ({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };
