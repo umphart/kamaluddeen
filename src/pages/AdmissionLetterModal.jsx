@@ -251,7 +251,7 @@ const generatePDF = async (forPrint = false) => {
           
           .details-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-top: 10px;
           }
@@ -277,6 +277,10 @@ const generatePDF = async (forPrint = false) => {
             border-bottom: 1px dashed #cbd5e0;
           }
           
+          .expected-completion {
+            grid-column: span 4;
+          }
+          
           .signatures-pdf {
             display: flex;
             justify-content: space-between;
@@ -285,6 +289,22 @@ const generatePDF = async (forPrint = false) => {
             border-top: 1px solid #cbd5e0;
             position: relative;
             z-index: 20;
+          }
+          
+          .signature-left {
+            width: 200px;
+          }
+          
+          .signature-right {
+            width: 200px;
+            text-align: right;
+          }
+          
+          .owner-signature-img {
+            height: 60px;
+            width: 180px;
+            object-fit: contain;
+            margin-bottom: 5px;
           }
           
           .footer-pdf {
@@ -312,7 +332,7 @@ const generatePDF = async (forPrint = false) => {
             background-repeat: repeat;
             background-size: 150px 150px;
             background-position: 0 0;
-            opacity: 1.18;
+            opacity: 0.18;
             transform: rotate(-45deg);
           }
           
@@ -339,7 +359,7 @@ const generatePDF = async (forPrint = false) => {
             height: 120px;
             object-fit: contain;
             filter: grayscale(100%) brightness(1.2);
-            opacity: 1.18;
+            opacity: 0.18;
           }
           
           .watermark-pattern {
@@ -350,7 +370,7 @@ const generatePDF = async (forPrint = false) => {
             height: 100%;
             z-index: 1;
             pointer-events: none;
-            opacity: 1.15;
+            opacity: 0.15;
             background: repeating-linear-gradient(
               45deg,
               transparent,
@@ -924,7 +944,7 @@ const generatePDF = async (forPrint = false) => {
               <h2 className="text-lg font-bold text-gray-800 underline">LETTER OF ADMISSION</h2>
             </div>
             
-            {/* Content */}
+               {/* Content */}
             <div className="space-y-3 text-gray-700 text-sm relative z-10">
               <p>Dear Mr/Mrs {selectedLetterStudent.parentName},</p>
               
@@ -933,9 +953,9 @@ const generatePDF = async (forPrint = false) => {
               
               <p>This letter serves as official confirmation of admission with the following details:</p>
               
-              {/* Details Container - Changed from table to paragraph layout */}
+              {/* Details Container - 4 rows without class */}
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 my-4 border border-indigo-100 relative z-10">
-                <div className="grid grid-cols-3 gap-4 mt-2">
+                <div className="grid grid-cols-4 gap-4 mt-2">
                   {/* Row 1 */}
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Student's Full Name</p>
@@ -949,22 +969,16 @@ const generatePDF = async (forPrint = false) => {
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Level</p>
                     <p className="font-semibold text-gray-800 text-sm border-b border-dashed border-gray-300 pb-1">{selectedLetterStudent.level}</p>
                   </div>
-                  
-                  {/* Row 2 */}
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Class</p>
-                    <p className="font-semibold text-gray-800 text-sm border-b border-dashed border-gray-300 pb-1">{selectedLetterStudent.className}</p>
-                  </div>
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Gender</p>
                     <p className="font-semibold text-gray-800 text-sm border-b border-dashed border-gray-300 pb-1">{selectedLetterStudent.gender}</p>
                   </div>
+                  
+                  {/* Row 2 */}
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Date of Birth</p>
                     <p className="font-semibold text-gray-800 text-sm border-b border-dashed border-gray-300 pb-1">{selectedLetterStudent.dateOfBirth}</p>
                   </div>
-                  
-                  {/* Row 3 */}
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Admission Date</p>
                     <p className="font-semibold text-gray-800 text-sm border-b border-dashed border-gray-300 pb-1">{selectedLetterStudent.admissionDate}</p>
@@ -990,9 +1004,8 @@ const generatePDF = async (forPrint = false) => {
               
               <p>Please note the following important information:</p>
               <ul className="list-disc pl-4 space-y-1 text-sm">
-                <li>Orientation for new students will hold on {new Date(new Date().setDate(new Date().getDate() + 7)).toLocaleDateString()}</li>
                 <li>School fees payment deadline is {new Date(new Date().setDate(new Date().getDate() + 14)).toLocaleDateString()}</li>
-                <li>School uniforms and books are available at the school store</li>
+                <li>School uniforms and books are available at the school</li>
                 <li>School hours are from 8:00 AM to 2:00 PM, Monday to Friday</li>
               </ul>
               
@@ -1002,23 +1015,23 @@ const generatePDF = async (forPrint = false) => {
             
             {/* Signatures - Principal (without name) and Owner */}
             <div className="flex justify-between mt-8 relative z-10">
-              <div className="pt-6 border-t border-gray-300 w-40">
+              <div className="pt-6 border-t border-gray-300 w-48">
                 <p className="font-bold text-gray-800 text-sm">Principal</p>
                 <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
               </div>
               
-              <div className="text-right">
-                <img 
-                  src={ownerSignature} 
-                  alt="Owner Signature" 
-                  className="h-14 object-contain mb-2"
-                />
-                <div className="pt-6 border-t border-gray-300 w-40 text-right">
-                  <p className="font-bold text-gray-800 text-sm">{schoolInfo.owner}</p>
-                  <p className="text-gray-600 text-xs">School Owner/Proprietor</p>
-                  <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
-                </div>
-              </div>
+<div className="text-right">
+  <img 
+    src={ownerSignature} 
+    alt="Owner Signature" 
+    className="h-32 w-64 object-contain mb-1"
+  />
+  <div className="pt-6 border-t border-gray-300 w-64 text-right">
+    <p className="font-bold text-gray-800 text-sm">{schoolInfo.owner}</p>
+    <p className="text-gray-600 text-xs">School Owner/Proprietor</p>
+    <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
+  </div>
+</div>
             </div>
             
             {/* Footer */}
