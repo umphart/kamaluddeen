@@ -1,5 +1,5 @@
 // src/pages/StudentListView.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   FiUser, 
   FiCalendar, 
@@ -8,7 +8,9 @@ import {
   FiFileText,
   FiDownload,
   FiChevronLeft,
-  FiChevronRight
+  FiChevronRight,
+  FiArrowUp,
+  FiArrowDown
 } from 'react-icons/fi';
 import { 
   MdClass,
@@ -28,13 +30,52 @@ const StudentListView = ({
   generateIdCard,
   generateAdmissionLetter,
   handleDeleteStudent,
-  levels
+  levels,
+  selectedLevel,      // Add this prop
+  selectedClass       // Add this prop
 }) => {
+  // Define level order for sorting
+  const levelOrder = ['pre-nursery', 'nursery', 'kg', 'basic 1', 'basic 2', 'basic 3', 
+                      'basic 4', 'basic 5', 'jss 1', 'jss 2', 'jss 3'];
+
+  // Sort students based on selected filter
+  const sortedStudents = useMemo(() => {
+    const studentsCopy = [...students];
+    
+    if (selectedLevel === 'All') {
+      // Sort by level order, then by admission number
+      return studentsCopy.sort((a, b) => {
+        // Get level index for comparison
+        const levelAIndex = levelOrder.indexOf(a.level.toLowerCase());
+        const levelBIndex = levelOrder.indexOf(b.level.toLowerCase());
+        
+        // If same level, sort by admission number
+        if (levelAIndex === levelBIndex) {
+          const numA = parseInt(a.admissionNumber.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.admissionNumber.replace(/\D/g, '')) || 0;
+          return numA - numB;
+        }
+        
+        // Sort by level order
+        return levelAIndex - levelBIndex;
+      });
+    } else if (selectedClass !== 'All') {
+      // When specific class is selected, sort only by admission number
+      return studentsCopy.sort((a, b) => {
+        const numA = parseInt(a.admissionNumber.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.admissionNumber.replace(/\D/g, '')) || 0;
+        return numA - numB;
+      });
+    }
+    
+    return studentsCopy;
+  }, [students, selectedLevel, selectedClass]);
+
   // Pagination
-  const totalPages = Math.ceil(students.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedStudents.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentStudents = students.slice(startIndex, endIndex);
+  const currentStudents = sortedStudents.slice(startIndex, endIndex);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -46,12 +87,18 @@ const StudentListView = ({
                 <div className="flex items-center gap-1">
                   <FiUser className="w-4 h-4" />
                   Student
+                  {selectedLevel === 'All' && (
+                    <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Level (Pre-Nursery to JSSS)" />
+                  )}
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <div className="flex items-center gap-1">
                   <HiOutlineIdentification className="w-4 h-4" />
                   Admission Details
+                  {selectedClass !== 'All' && (
+                    <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Admission Number" />
+                  )}
                 </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -179,6 +226,13 @@ const StudentListView = ({
         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-700">
             Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+            <span className="ml-4 text-xs text-blue-600">
+              {selectedLevel === 'All' 
+                ? 'Sorted by Level (Pre-Nursery → JSSS)' 
+                : selectedClass !== 'All' 
+                  ? 'Sorted by Admission Number'
+                  : ''}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button

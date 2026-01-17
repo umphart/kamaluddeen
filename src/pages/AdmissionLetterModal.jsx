@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { FiDownload, FiPrinter, FiX, FiLoader } from 'react-icons/fi';
 import schoolLogo from './kcc.jpeg'; // Import logo from pages folder
+import ownerSignature from './sign.png'; // Import owner signature from pages folder
 
 const AdmissionLetterModal = ({
   showAdmissionLetter,
@@ -26,7 +27,8 @@ const AdmissionLetterModal = ({
     email: "kamaluddeencomprehensive@gmail.com",
     secondaryEmail: "aliyumuzammilsani@gmail.com",
     owner: "Muzammil Sani Aliyu (BSc)",
-    logo: schoolLogo
+    logo: schoolLogo,
+    signature: ownerSignature
   };
 
   // Function to generate PDF
@@ -310,7 +312,7 @@ const generatePDF = async (forPrint = false) => {
             background-repeat: repeat;
             background-size: 150px 150px;
             background-position: 0 0;
-            opacity: 0.18;
+            opacity: 1.18;
             transform: rotate(-45deg);
           }
           
@@ -337,7 +339,7 @@ const generatePDF = async (forPrint = false) => {
             height: 120px;
             object-fit: contain;
             filter: grayscale(100%) brightness(1.2);
-            opacity: 0.18;
+            opacity: 1.18;
           }
           
           .watermark-pattern {
@@ -348,7 +350,7 @@ const generatePDF = async (forPrint = false) => {
             height: 100%;
             z-index: 1;
             pointer-events: none;
-            opacity: 0.15;
+            opacity: 1.15;
             background: repeating-linear-gradient(
               45deg,
               transparent,
@@ -464,23 +466,41 @@ const generatePDF = async (forPrint = false) => {
     const img = new Image();
     img.src = schoolLogo;
     
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      const logoDataUrl = canvas.toDataURL('image/png');
-      
-      const htmlContent = createHTMLContent(logoDataUrl, completionYear, duration, currentDate);
-      downloadHTML(htmlContent);
-    };
+    // Convert signature to data URL
+    const signatureCanvas = document.createElement('canvas');
+    const signatureCtx = signatureCanvas.getContext('2d');
+    const signatureImg = new Image();
+    signatureImg.src = ownerSignature;
     
-    img.onerror = () => {
-      const htmlContent = createHTMLContent('', completionYear, duration, currentDate);
+    Promise.all([
+      new Promise((resolve) => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve('');
+      }),
+      new Promise((resolve) => {
+        signatureImg.onload = () => {
+          signatureCanvas.width = signatureImg.width;
+          signatureCanvas.height = signatureImg.height;
+          signatureCtx.drawImage(signatureImg, 0, 0);
+          resolve(signatureCanvas.toDataURL('image/png'));
+        };
+        signatureImg.onerror = () => resolve('');
+      })
+    ]).then(([logoDataUrl, signatureDataUrl]) => {
+      const htmlContent = createHTMLContent(logoDataUrl, signatureDataUrl, completionYear, duration, currentDate);
       downloadHTML(htmlContent);
-    };
+    }).catch(() => {
+      const htmlContent = createHTMLContent('', '', completionYear, duration, currentDate);
+      downloadHTML(htmlContent);
+    });
   };
 
-  const createHTMLContent = (logoDataUrl, completionYear, duration, currentDate) => {
+  const createHTMLContent = (logoDataUrl, signatureDataUrl, completionYear, duration, currentDate) => {
     return `
       <!DOCTYPE html>
       <html>
@@ -748,14 +768,16 @@ const generatePDF = async (forPrint = false) => {
         <div class="signatures">
           <div>
             <div style="border-top: 1px solid #333; width: 200px; padding-top: 10px; margin-top: 40px;">
-              <strong>Umar Musa Halliru (Bsc)</strong><br>
-              Principal<br>
+              <strong>Principal</strong><br>
               ${schoolInfo.name}
             </div>
           </div>
           
           <div>
-            <div style="border-top: 1px solid #333; width: 200px; padding-top: 10px; margin-top: 40px; text-align: right;">
+            ${signatureDataUrl ? `
+              <img src="${signatureDataUrl}" alt="Owner Signature" style="height: 50px; object-fit: contain;">
+            ` : ''}
+            <div style="border-top: 1px solid #333; width: 200px; padding-top: 10px; margin-top: 10px; text-align: right;">
               <strong>${schoolInfo.owner}</strong><br>
               School Owner/Proprietor<br>
               ${schoolInfo.name}
@@ -798,7 +820,7 @@ const generatePDF = async (forPrint = false) => {
       day: 'numeric'
     });
 
-    const htmlContent = createHTMLContent('', completionYear, duration, currentDate);
+    const htmlContent = createHTMLContent('', '', completionYear, duration, currentDate);
     const printWindow = window.open('', '_blank');
     printWindow.document.write(htmlContent);
     printWindow.document.close();
@@ -978,18 +1000,24 @@ const generatePDF = async (forPrint = false) => {
               Should you have any questions, please do not hesitate to contact the admissions office.</p>
             </div>
             
-            {/* Signatures */}
+            {/* Signatures - Principal (without name) and Owner */}
             <div className="flex justify-between mt-8 relative z-10">
               <div className="pt-6 border-t border-gray-300 w-40">
-                <p className="font-bold text-gray-800 text-sm">Umar Musa Halliru (Bsc)</p>
-                <p className="text-gray-600 text-xs">Principal</p>
+                <p className="font-bold text-gray-800 text-sm">Principal</p>
                 <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
               </div>
               
-              <div className="pt-6 border-t border-gray-300 w-40 text-right">
-                <p className="font-bold text-gray-800 text-sm">{schoolInfo.owner}</p>
-                <p className="text-gray-600 text-xs">School Owner/Proprietor</p>
-                <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
+              <div className="text-right">
+                <img 
+                  src={ownerSignature} 
+                  alt="Owner Signature" 
+                  className="h-14 object-contain mb-2"
+                />
+                <div className="pt-6 border-t border-gray-300 w-40 text-right">
+                  <p className="font-bold text-gray-800 text-sm">{schoolInfo.owner}</p>
+                  <p className="text-gray-600 text-xs">School Owner/Proprietor</p>
+                  <p className="text-gray-600 text-xs">{schoolInfo.name}</p>
+                </div>
               </div>
             </div>
             

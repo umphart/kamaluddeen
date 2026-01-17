@@ -11,7 +11,7 @@ import {
   FiFileText,
   FiRefreshCw,
   FiCalendar,
- 
+  FiArrowUp
 } from 'react-icons/fi';
 import { 
   MdClass, 
@@ -66,13 +66,16 @@ const Classes = () => {
     }
   ];
 
+  // Level order for sorting
+  const levelOrder = ['PN', 'NU', 'PR', 'JS'];
+
   useEffect(() => {
     loadStudents();
   }, []);
 
   useEffect(() => {
     filterStudents();
-  },);
+  }, [students, searchTerm, selectedLevel, selectedClass]);
 
   const loadStudents = async () => {
     try {
@@ -118,6 +121,32 @@ const Classes = () => {
     }
   };
 
+  // Helper function to extract numeric part from admission number
+  const getAdmissionNumberNumeric = (admissionNumber) => {
+    if (!admissionNumber) return 999999;
+    
+    // Handle KCC/PN/2026/001 format
+    const parts = admissionNumber.split('/');
+    if (parts.length >= 4) {
+      const lastPart = parts[parts.length - 1];
+      const num = parseInt(lastPart, 10);
+      if (!isNaN(num)) return num;
+    }
+    
+    // Fallback: extract any numbers
+    const matches = admissionNumber.match(/\d+/g);
+    if (matches && matches.length > 0) {
+      const num = parseInt(matches[matches.length - 1], 10);
+      if (!isNaN(num)) return num;
+    }
+    
+    // Fallback 2: direct parse
+    const directParse = parseInt(admissionNumber, 10);
+    if (!isNaN(directParse)) return directParse;
+    
+    return 999999;
+  };
+
   const filterStudents = () => {
     // Ensure students is an array
     if (!Array.isArray(students)) {
@@ -157,25 +186,66 @@ const Classes = () => {
       );
     }
 
+    // Sort the filtered students
+    filtered.sort((a, b) => {
+      // If viewing all classes, sort by level first, then class, then admission number
+      if (selectedClass === 'all') {
+        // Sort by level order (PN → NU → PR → JS)
+        const levelAIndex = levelOrder.indexOf(a?.level || '');
+        const levelBIndex = levelOrder.indexOf(b?.level || '');
+        
+        if (levelAIndex !== levelBIndex) {
+          return levelAIndex - levelBIndex;
+        }
+        
+        // Same level, sort by class name alphabetically
+        if (a.className !== b.className) {
+          return a.className?.localeCompare(b.className || '') || 0;
+        }
+      }
+      
+      // Same class (or specific class selected), sort by admission number
+      const numA = getAdmissionNumberNumeric(a.admissionNumber);
+      const numB = getAdmissionNumberNumeric(b.admissionNumber);
+      return numA - numB;
+    });
+
     setFilteredStudents(filtered);
     setCurrentPage(1);
   };
 
-  // Get all available classes from students
+  // Get all available classes from students, sorted by level then alphabetically
   const getAllClasses = () => {
     if (!Array.isArray(students)) {
       console.warn('students is not an array in getAllClasses');
       return [];
     }
     
-    const uniqueClasses = [...new Set(
-      students
-        .filter(student => student && student.className)
-        .map(student => student.className)
-        .filter(className => className && className.trim() !== '')
-    )];
+    // Group classes by level to maintain level order
+    const classesByLevel = {
+      'PN': new Set(),
+      'NU': new Set(),
+      'PR': new Set(),
+      'JS': new Set()
+    };
     
-    return uniqueClasses.sort();
+    // Collect classes by level
+    students.forEach(student => {
+      if (student && student.className && student.level && classesByLevel[student.level]) {
+        classesByLevel[student.level].add(student.className);
+      }
+    });
+    
+    // Flatten in level order, with classes sorted alphabetically within each level
+    const sortedClasses = [];
+    levelOrder.forEach(levelCode => {
+      if (classesByLevel[levelCode]) {
+        const levelClasses = Array.from(classesByLevel[levelCode]).sort();
+        sortedClasses.push(...levelClasses);
+      }
+    });
+    
+    return sortedClasses;
   };
 
   // Get class statistics
@@ -187,14 +257,22 @@ const Classes = () => {
       const classStudents = students.filter(student => 
         student && student.className === className
       );
-      const level = classStudents[0]?.level || '';
+      
+      // Sort students within class by admission number
+      const sortedClassStudents = [...classStudents].sort((a, b) => {
+        const numA = getAdmissionNumberNumeric(a.admissionNumber);
+        const numB = getAdmissionNumberNumeric(b.admissionNumber);
+        return numA - numB;
+      });
+      
+      const level = sortedClassStudents[0]?.level || '';
       const levelInfo = levels.find(l => l.code === level);
       
       stats[className] = {
-        total: classStudents.length,
-        male: classStudents.filter(s => s && s.gender === 'Male').length,
-        female: classStudents.filter(s => s && s.gender === 'Female').length,
-        active: classStudents.filter(s => s && s.status === 'Active').length,
+        total: sortedClassStudents.length,
+        male: sortedClassStudents.filter(s => s && s.gender === 'Male').length,
+        female: sortedClassStudents.filter(s => s && s.gender === 'Female').length,
+        active: sortedClassStudents.filter(s => s && s.status === 'Active').length,
         level: level,
         levelInfo: levelInfo || levels[0]
       };
@@ -275,6 +353,15 @@ const Classes = () => {
     toast.success(`CSV exported for ${className || 'all classes'}!`);
   };
 
+  // Get sorting display text
+  const getSortingText = () => {
+    if (selectedClass === 'all') {
+      return 'Sorted by: Level (Pre-Nursery → Junior Secondary) → Class → Admission No.';
+    } else {
+      return 'Sorted by: Admission Number (ascending)';
+    }
+  };
+
   // Class statistics
   const classStats = getClassStatistics();
   const allClasses = getAllClasses();
@@ -286,7 +373,6 @@ const Classes = () => {
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
           <h3 className="text-lg font-medium text-gray-800 mb-2">Loading Students</h3>
-         
         </div>
       </div>
     );
@@ -355,6 +441,17 @@ const Classes = () => {
         </div>
       </div>
 
+      {/* Sorting Info Banner */}
+      {filteredStudents.length > 0 && (
+        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">📊 Sorting:</span>
+              <span>{getSortingText()}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Class Selection Cards */}
       <div className="mb-8">
@@ -585,13 +682,23 @@ const Classes = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Admission Details
+                    <div className="flex items-center gap-1">
+                      Admission Details
+                      {selectedClass === 'all' && (
+                        <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Level → Class → Admission No." />
+                      )}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Student Information
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Class & Level
+                    <div className="flex items-center gap-1">
+                      Class & Level
+                      {selectedClass === 'all' && (
+                        <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Level order (Pre-Nursery → Junior Secondary)" />
+                      )}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Parent Information
@@ -675,6 +782,11 @@ const Classes = () => {
             <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-700">
                 Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                {selectedClass === 'all' && (
+                  <span className="ml-4 text-xs text-blue-600">
+                    Pre-Nursery → Nursery → Primary → Junior Secondary
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button
