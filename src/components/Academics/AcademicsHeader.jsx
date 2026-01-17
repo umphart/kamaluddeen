@@ -47,12 +47,11 @@ const AcademicsHeader = ({
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {/* Statistics Cards - Removed Weekly Periods */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {[
           { label: 'Total Subjects', value: statistics.totalSubjects },
           { label: 'Active Classes', value: statistics.totalClasses },
-          { label: 'Weekly Periods', value: statistics.totalPeriods },
           { label: 'Teachers Assigned', value: statistics.uniqueTeachers }
         ].map((item, index) => (
           <div

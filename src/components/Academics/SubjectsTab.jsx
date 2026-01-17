@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; 
 import { academicService } from '../../services/academicService';
-import { FaEye, FaEdit, FaTrash, FaSave, FaTimes, FaUserTie, FaBook, FaClock, FaPalette } from 'react-icons/fa';
+import { FaEye, FaEdit, FaTrash, FaSave, FaTimes, FaUserTie, FaBook, FaPalette } from 'react-icons/fa';
 
 const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger }) => {
   const [subjects, setSubjects] = useState([]);
@@ -13,12 +13,13 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => { loadSubjects(); }, [refreshTrigger]);
-  useEffect(() => { filterSubjects(); }, [subjects, searchTerm, selectedLevel, selectedStatus]);
+  useEffect(() => { filterAndSortSubjects(); }, [subjects, searchTerm, selectedLevel, selectedStatus]);
 
   const loadSubjects = async () => {
     try {
       setLoading(true);
       const data = await academicService.getAllSubjects();
+      console.log('Loaded subjects from service:', data);
       setSubjects(data);
     } catch (error) {
       console.error('Error loading subjects:', error);
@@ -27,29 +28,199 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
     }
   };
 
-  const filterSubjects = () => {
+  // Helper function to determine ALL levels from classes
+  const getLevelsFromClasses = (classes) => {
+    if (!classes || classes.length === 0) return [];
+    
+    const levels = new Set();
+    
+    classes.forEach(className => {
+      const classNameLower = className.toLowerCase();
+      
+      if (classNameLower.includes('jss')) {
+        levels.add('JS');
+      } else if (classNameLower.includes('primary')) {
+        levels.add('PR');
+      } else if (classNameLower.includes('nursery')) {
+        if (classNameLower.includes('pre-nursery') || classNameLower.includes('pre nursery')) {
+          levels.add('PN');
+        } else {
+          levels.add('NU');
+        }
+      }
+    });
+    
+    return Array.from(levels);
+  };
+
+  // Helper function to get primary level for display (most common or first)
+  const getPrimaryLevelFromClasses = (classes) => {
+    const levels = getLevelsFromClasses(classes);
+    
+    if (levels.length === 0) return null;
+    
+    // If only one level, return it
+    if (levels.length === 1) return levels[0];
+    
+    // If multiple levels, determine which one has more classes
+    const levelCount = {};
+    classes.forEach(className => {
+      const classNameLower = className.toLowerCase();
+      
+      if (classNameLower.includes('jss')) {
+        levelCount['JS'] = (levelCount['JS'] || 0) + 1;
+      } else if (classNameLower.includes('primary')) {
+        levelCount['PR'] = (levelCount['PR'] || 0) + 1;
+      } else if (classNameLower.includes('nursery')) {
+        if (classNameLower.includes('pre-nursery') || classNameLower.includes('pre nursery')) {
+          levelCount['PN'] = (levelCount['PN'] || 0) + 1;
+        } else {
+          levelCount['NU'] = (levelCount['NU'] || 0) + 1;
+        }
+      }
+    });
+    
+    // Find the level with highest count
+    let maxLevel = null;
+    let maxCount = 0;
+    Object.entries(levelCount).forEach(([level, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        maxLevel = level;
+      }
+    });
+    
+    return maxLevel || levels[0];
+  };
+
+  // Helper function to get class order for sorting
+  const getClassOrder = () => {
+    return [
+      'Pre-Nursery',
+      'Nursery 1', 'Nursery 2',
+      'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4',
+      'JSS 1', 'JSS 2', 'JSS 3',
+      'All Classes'
+    ];
+  };
+
+  // Helper function to get the first class for sorting
+  const getFirstClassForSorting = (subject) => {
+    if (!subject.classes || subject.classes.length === 0) return 'ZZZ';
+    const classOrder = getClassOrder();
+    
+    // Find the first class that exists in our order array
+    for (const className of subject.classes) {
+      const index = classOrder.indexOf(className);
+      if (index !== -1) return className;
+    }
+    
+    // If no class found in order, use the first class alphabetically
+    return subject.classes[0];
+  };
+
+  const filterAndSortSubjects = () => {
+    console.log('Starting filterAndSortSubjects...');
+    console.log('Total subjects:', subjects.length);
+    console.log('Selected level:', selectedLevel);
+    console.log('Selected status:', selectedStatus);
+    console.log('Search term:', searchTerm);
+    
     let filtered = [...subjects];
 
+    // Log all subjects with their derived levels
+    console.log('All subjects with derived levels:');
+    subjects.forEach((subject, index) => {
+      const allLevels = getLevelsFromClasses(subject.classes);
+      const primaryLevel = getPrimaryLevelFromClasses(subject.classes);
+      console.log(`${index + 1}. ${subject.name} - All Levels: "${allLevels.join(', ')}" - Primary Level: "${primaryLevel}" - Classes: ${subject.classes?.join(', ')}`);
+    });
+
+    // Apply filters
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(subject =>
         subject.name.toLowerCase().includes(term) ||
         subject.code.toLowerCase().includes(term) ||
-        subject.description.toLowerCase().includes(term) ||
-        subject.teacher.toLowerCase().includes(term)
+        (subject.description && subject.description.toLowerCase().includes(term)) ||
+        (subject.teacher && subject.teacher.toLowerCase().includes(term))
       );
+      console.log(`After search filter (${searchTerm}):`, filtered.length, 'subjects');
     }
 
-    if (selectedLevel !== 'all') filtered = filtered.filter(subject => subject.level === selectedLevel);
-    if (selectedStatus !== 'all') filtered = filtered.filter(subject => subject.status === selectedStatus);
+    // Filter by level - check if subject is taught in the selected level
+    if (selectedLevel !== 'all') {
+      console.log(`Filtering by level: ${selectedLevel}`);
+      const beforeFilter = filtered.length;
+      filtered = filtered.filter(subject => {
+        const allLevels = getLevelsFromClasses(subject.classes);
+        const matches = allLevels.includes(selectedLevel);
+        if (!matches && allLevels.length > 0) {
+          console.log(`Subject "${subject.name}" levels "${allLevels.join(', ')}" doesn't include "${selectedLevel}"`);
+        }
+        return matches;
+      });
+      console.log(`After level filter (${selectedLevel}): ${filtered.length} subjects (was ${beforeFilter})`);
+    }
+
+    // Filter by status
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(subject => subject.status === selectedStatus);
+      console.log(`After status filter (${selectedStatus}):`, filtered.length, 'subjects');
+    }
+
+    // Log filtered results
+    console.log('Filtered subjects:');
+    filtered.forEach((subject, index) => {
+      const allLevels = getLevelsFromClasses(subject.classes);
+      const primaryLevel = getPrimaryLevelFromClasses(subject.classes);
+      console.log(`${index + 1}. ${subject.name} - All Levels: ${allLevels.join(', ')} - Primary Level: ${primaryLevel} - Classes: ${subject.classes?.join(', ')}`);
+    });
+
+    // Sort subjects by class, then by name
+    filtered.sort((a, b) => {
+      // Get first class for each subject
+      const classA = getFirstClassForSorting(a);
+      const classB = getFirstClassForSorting(b);
+      
+      const classOrder = getClassOrder();
+      const indexA = classOrder.indexOf(classA);
+      const indexB = classOrder.indexOf(classB);
+      
+      // If both classes are in the order array, sort by that order
+      if (indexA !== -1 && indexB !== -1) {
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+      } else if (indexA !== -1) {
+        // Only A is in order array, A comes first
+        return -1;
+      } else if (indexB !== -1) {
+        // Only B is in order array, B comes first
+        return 1;
+      } else {
+        // Neither is in order array, sort alphabetically
+        if (classA < classB) return -1;
+        if (classA > classB) return 1;
+      }
+      
+      // If same class, sort by subject name
+      return a.name.localeCompare(b.name);
+    });
 
     setFilteredSubjects(filtered);
+    console.log('Final filtered subjects count:', filtered.length);
   };
 
   const getLevelName = (code) => {
-    const levels = academicService.getLevels();
-    const level = levels.find(l => l.code === code);
-    return level ? level.name : code;
+    const levels = {
+      'PN': 'Pre-Nursery',
+      'NU': 'Nursery',
+      'PR': 'Primary',
+      'JS': 'Junior Secondary',
+      'All': 'All Levels'
+    };
+    return levels[code] || code;
   };
 
   const getLevelColor = (code) => {
@@ -212,6 +383,21 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
         </div>
       )}
 
+      {/* Debug Info - Can be removed in production */}
+      <div style={{ 
+        marginBottom: '10px', 
+        padding: '10px', 
+        backgroundColor: '#f3f4f6', 
+        borderRadius: '6px',
+        fontSize: '12px',
+        color: '#6b7280'
+      }}>
+        <strong>Debug Info:</strong> Showing {filteredSubjects.length} subjects | 
+        Selected Level: {selectedLevel} ({getLevelName(selectedLevel)}) | 
+        Search: {searchTerm || 'none'} | 
+        Status: {selectedStatus}
+      </div>
+
       <div className="table-container">
         <div className="table-header">
           <h3>Subjects ({filteredSubjects.length})</h3>
@@ -224,126 +410,179 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                 <th style={tableStyles.th}>Code</th>
                 <th style={tableStyles.th}>Name</th>
                 <th style={tableStyles.th}>Classes</th>
-             
-                 <th style={tableStyles.th}>Actions</th>
+                <th style={tableStyles.th}>Teacher</th>
+                <th style={tableStyles.th}>Levels</th>
+                <th style={tableStyles.th}>Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {filteredSubjects.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={tableStyles.emptyState}>No subjects found</td>
+                  <td colSpan="6" style={tableStyles.emptyState}>
+                    No subjects found
+                    {selectedLevel !== 'all' && ` for ${getLevelName(selectedLevel)} level`}
+                    {searchTerm && ` matching "${searchTerm}"`}
+                  </td>
                 </tr>
               ) : (
-                filteredSubjects.map(subject => (
-                  <tr key={subject.id}>
-                    <td style={tableStyles.td}>
-                      {editingSubject === subject.id ? (
-                        <input
-                          type="text"
-                          name="code"
-                          value={formData.code || ''}
-                          onChange={handleInputChange}
-                          style={tableStyles.input}
-                          placeholder="Subject code"
-                        />
-                      ) : (
-                        subject.code
-                      )}
-                    </td>
-                    <td style={tableStyles.td}>
-                      {editingSubject === subject.id ? (
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name || ''}
-                          onChange={handleInputChange}
-                          style={tableStyles.input}
-                          placeholder="Subject name"
-                        />
-                      ) : (
-                        <strong>{subject.name}</strong>
-                      )}
-                    </td>
-                   
-                    <td style={tableStyles.td}>
-                      {editingSubject === subject.id ? (
-                        <input
-                          type="text"
-                          name="classes"
-                          value={formData.classes || ''}
-                          onChange={handleInputChange}
-                          style={tableStyles.input}
-                          placeholder="Class 1, Class 2, ..."
-                        />
-                      ) : (
-                        <>
-                          {subject.classes.slice(0, 2).join(', ')}
-                          {subject.classes.length > 2 && ` +${subject.classes.length - 2}`}
-                        </>
-                      )}
-                    </td>
-            
-                   
-                    <td style={tableStyles.actionCell}>
-                      {editingSubject === subject.id ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={handleSaveEdit}
-                            style={{
-                              ...tableStyles.actionButton,
-                              backgroundColor: '#10b981',
-                              color: 'white'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
-                          >
-                            <FaSave size={12} /> Save
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            style={{
-                              ...tableStyles.actionButton,
-                              backgroundColor: '#ef4444',
-                              color: 'white'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
-                          >
-                            <FaTimes size={12} /> Cancel
-                          </button>
+                filteredSubjects.map(subject => {
+                  const allLevels = getLevelsFromClasses(subject.classes);
+                  const primaryLevel = getPrimaryLevelFromClasses(subject.classes);
+                  
+                  return (
+                    <tr key={subject.id}>
+                      <td style={tableStyles.td}>
+                        {editingSubject === subject.id ? (
+                          <input
+                            type="text"
+                            name="code"
+                            value={formData.code || ''}
+                            onChange={handleInputChange}
+                            style={tableStyles.input}
+                            placeholder="Subject code"
+                          />
+                        ) : (
+                          subject.code
+                        )}
+                      </td>
+                      <td style={tableStyles.td}>
+                        {editingSubject === subject.id ? (
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name || ''}
+                            onChange={handleInputChange}
+                            style={tableStyles.input}
+                            placeholder="Subject name"
+                          />
+                        ) : (
+                          <strong>{subject.name}</strong>
+                        )}
+                      </td>
+                     
+                      <td style={tableStyles.td}>
+                        {editingSubject === subject.id ? (
+                          <input
+                            type="text"
+                            name="classes"
+                            value={formData.classes || ''}
+                            onChange={handleInputChange}
+                            style={tableStyles.input}
+                            placeholder="Class 1, Class 2, ..."
+                          />
+                        ) : (
+                          <>
+                            {subject.classes && subject.classes.length > 0 ? (
+                              <>
+                                {subject.classes.slice(0, 3).join(', ')}
+                                {subject.classes.length > 3 && ` +${subject.classes.length - 3}`}
+                              </>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No classes</span>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      
+                      <td style={tableStyles.td}>
+                        {editingSubject === subject.id ? (
+                          <input
+                            type="text"
+                            name="teacher"
+                            value={formData.teacher || ''}
+                            onChange={handleInputChange}
+                            style={tableStyles.input}
+                            placeholder="Teacher name"
+                          />
+                        ) : (
+                          subject.teacher || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Not assigned</span>
+                        )}
+                      </td>
+                      
+                      {/* Updated Levels column - showing all levels */}
+                      <td style={tableStyles.td}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {allLevels.length > 0 ? (
+                            allLevels.map((level, index) => (
+                              <span key={index} style={{
+                                padding: '3px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: getLevelColor(level),
+                                color: 'white',
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {getLevelName(level)}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>N/A</span>
+                          )}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            className="action-btn view"
-                            title="View Details"
-                            onClick={() => setSelectedSubject(subject)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
-                          >
-                            <FaEye size={14} />
-                          </button>
-                          <button
-                            className="action-btn edit"
-                            title="Edit"
-                            onClick={() => handleEdit(subject)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }}
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button
-                            className="action-btn delete"
-                            title="Delete"
-                            onClick={() => handleDeleteClick(subject.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                     
+                      <td style={tableStyles.actionCell}>
+                        {editingSubject === subject.id ? (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={handleSaveEdit}
+                              style={{
+                                ...tableStyles.actionButton,
+                                backgroundColor: '#10b981',
+                                color: 'white'
+                              }}
+                              onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+                              onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
+                            >
+                              <FaSave size={12} /> Save
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              style={{
+                                ...tableStyles.actionButton,
+                                backgroundColor: '#ef4444',
+                                color: 'white'
+                              }}
+                              onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
+                              onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
+                            >
+                              <FaTimes size={12} /> Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              className="action-btn view"
+                              title="View Details"
+                              onClick={() => setSelectedSubject(subject)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                            >
+                              <FaEye size={14} />
+                            </button>
+                            <button
+                              className="action-btn edit"
+                              title="Edit"
+                              onClick={() => handleEdit(subject)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b' }}
+                            >
+                              <FaEdit size={14} />
+                            </button>
+                            <button
+                              className="action-btn delete"
+                              title="Delete"
+                              onClick={() => handleDeleteClick(subject.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+                            >
+                              <FaTrash size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -437,7 +676,7 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
         </div>
       )}
 
-      {/* View Details Modal */}
+      {/* View Details Modal - Updated to show all levels */}
       {selectedSubject && (
         <div style={{
           position: 'fixed',
@@ -601,6 +840,44 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                           textTransform: 'uppercase',
                           letterSpacing: '0.05em',
                           marginBottom: '4px'
+                        }}>Levels</label>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                          padding: '8px 12px',
+                          backgroundColor: 'white',
+                          borderRadius: '6px',
+                          border: '1px solid #e2e8f0',
+                          minHeight: '40px'
+                        }}>
+                          {getLevelsFromClasses(selectedSubject.classes).length > 0 ? (
+                            getLevelsFromClasses(selectedSubject.classes).map((level, index) => (
+                              <span key={index} style={{
+                                padding: '4px 8px',
+                                backgroundColor: getLevelColor(level),
+                                color: 'white',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                {getLevelName(level)}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No levels assigned</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#64748b',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
                         }}>Description</label>
                         <div style={{
                           padding: '8px 12px',
@@ -633,7 +910,7 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                       alignItems: 'center',
                       gap: '8px'
                     }}>
-                      <FaUserTie /> Schedule & Staff
+                      <FaUserTie /> Classes & Staff
                     </h3>
                     <div style={{
                       display: 'flex',
@@ -649,31 +926,33 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
                           textTransform: 'uppercase',
                           letterSpacing: '0.05em',
                           marginBottom: '4px'
-                        }}>
-                          <FaClock style={{ marginRight: '6px' }} /> Weekly Periods
-                        </label>
+                        }}>Assigned Classes</label>
                         <div style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                          padding: selectedSubject.classes && selectedSubject.classes.length > 0 ? '8px 12px' : '12px',
+                          backgroundColor: 'white',
+                          borderRadius: '6px',
+                          border: '1px solid #e2e8f0',
+                          minHeight: '40px'
                         }}>
-                          <div style={{
-                            padding: '8px 12px',
-                            backgroundColor: 'white',
-                            borderRadius: '6px',
-                            border: '1px solid #e2e8f0',
-                            fontSize: '14px',
-                            color: '#1e293b',
-                            flex: 1
-                          }}>{selectedSubject.weeklyPeriods} periods/week</div>
-                          <div style={{
-                            padding: '6px 10px',
-                            backgroundColor: '#fef3c7',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#92400e',
-                            fontWeight: 500
-                          }}>{selectedSubject.weeklyPeriods * 40} mins</div>
+                          {selectedSubject.classes && selectedSubject.classes.length > 0 ? (
+                            selectedSubject.classes.map((className, index) => (
+                              <span key={index} style={{
+                                padding: '4px 10px',
+                                backgroundColor: '#f1f5f9',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                color: '#475569',
+                                border: '1px solid #e2e8f0'
+                              }}>
+                                {className}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No classes assigned</span>
+                          )}
                         </div>
                       </div>
                       <div>
@@ -803,7 +1082,6 @@ const SubjectsTab = ({ searchTerm, selectedLevel, selectedStatus, refreshTrigger
         </div>
       )}
 
-      {/* CSS Animations */}
       <style>{`
         @keyframes slideIn {
           from {

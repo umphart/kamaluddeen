@@ -11,7 +11,6 @@ import {
   FiFileText,
   FiRefreshCw,
   FiCalendar,
-  FiArrowUp
 } from 'react-icons/fi';
 import { 
   MdClass, 
@@ -82,37 +81,24 @@ const Classes = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Loading students from database...');
       const allStudents = await studentService.getAllStudents();
-      
-      // Debug log
-      console.log('Raw response from getAllStudents:', {
-        type: typeof allStudents,
-        isArray: Array.isArray(allStudents),
-        length: Array.isArray(allStudents) ? allStudents.length : 'N/A',
-        value: allStudents
-      });
       
       // Validate response
       if (!allStudents) {
-        console.warn('getAllStudents returned undefined/null');
         setStudents([]);
         toast.error('No data received from server');
         return;
       }
       
       if (!Array.isArray(allStudents)) {
-        console.error('Expected array but got:', typeof allStudents, allStudents);
         setStudents([]);
         toast.error('Invalid data format received');
         return;
       }
       
       setStudents(allStudents);
-      console.log(`Successfully loaded ${allStudents.length} students`);
       
     } catch (error) {
-      console.error('❌ Failed to load students:', error);
       setError(error.message);
       setStudents([]);
       toast.error(`Failed to load students: ${error.message}`);
@@ -150,7 +136,6 @@ const Classes = () => {
   const filterStudents = () => {
     // Ensure students is an array
     if (!Array.isArray(students)) {
-      console.warn('students is not an array in filterStudents:', students);
       setFilteredStudents([]);
       return;
     }
@@ -217,7 +202,6 @@ const Classes = () => {
   // Get all available classes from students, sorted by level then alphabetically
   const getAllClasses = () => {
     if (!Array.isArray(students)) {
-      console.warn('students is not an array in getAllClasses');
       return [];
     }
     
@@ -353,15 +337,6 @@ const Classes = () => {
     toast.success(`CSV exported for ${className || 'all classes'}!`);
   };
 
-  // Get sorting display text
-  const getSortingText = () => {
-    if (selectedClass === 'all') {
-      return 'Sorted by: Level (Pre-Nursery → Junior Secondary) → Class → Admission No.';
-    } else {
-      return 'Sorted by: Admission Number (ascending)';
-    }
-  };
-
   // Class statistics
   const classStats = getClassStatistics();
   const allClasses = getAllClasses();
@@ -440,18 +415,6 @@ const Classes = () => {
           </div>
         </div>
       </div>
-
-      {/* Sorting Info Banner */}
-      {filteredStudents.length > 0 && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">📊 Sorting:</span>
-              <span>{getSortingText()}</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Class Selection Cards */}
       <div className="mb-8">
@@ -682,23 +645,13 @@ const Classes = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      Admission Details
-                      {selectedClass === 'all' && (
-                        <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Level → Class → Admission No." />
-                      )}
-                    </div>
+                    Admission Details
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Student Information
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      Class & Level
-                      {selectedClass === 'all' && (
-                        <FiArrowUp className="w-3 h-3 text-blue-500" title="Sorted by Level order (Pre-Nursery → Junior Secondary)" />
-                      )}
-                    </div>
+                    Class & Level
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Parent Information
@@ -782,11 +735,6 @@ const Classes = () => {
             <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-700">
                 Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
-                {selectedClass === 'all' && (
-                  <span className="ml-4 text-xs text-blue-600">
-                    Pre-Nursery → Nursery → Primary → Junior Secondary
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <button

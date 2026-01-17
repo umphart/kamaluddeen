@@ -106,41 +106,40 @@ const Admissions = () => {
   };
 
   // Extract numeric part from admission number (handles KCC/PN/2026/001 format)
-// Update the getAdmissionNumberNumeric function
-const getAdmissionNumberNumeric = (admissionNumber) => {
-  if (!admissionNumber) return 999999; // Large number for null/undefined
-  
-  // Try to extract the last numeric part (e.g., 001 from KCC/PN/2026/001)
-  const parts = admissionNumber.split('/');
-  
-  if (parts.length >= 4) {
-    const lastPart = parts[parts.length - 1];
-    // Remove any leading zeros and convert to number
-    const num = parseInt(lastPart, 10);
-    if (!isNaN(num)) {
-      return num;
+  const getAdmissionNumberNumeric = (admissionNumber) => {
+    if (!admissionNumber) return 999999; // Large number for null/undefined
+    
+    // Try to extract the last numeric part (e.g., 001 from KCC/PN/2026/001)
+    const parts = admissionNumber.split('/');
+    
+    if (parts.length >= 4) {
+      const lastPart = parts[parts.length - 1];
+      // Remove any leading zeros and convert to number
+      const num = parseInt(lastPart, 10);
+      if (!isNaN(num)) {
+        return num;
+      }
     }
-  }
-  
-  // Fallback 1: Try to get last sequence of digits
-  const matches = admissionNumber.match(/\d+/g);
-  if (matches && matches.length > 0) {
-    const lastMatch = matches[matches.length - 1];
-    const num = parseInt(lastMatch, 10);
-    if (!isNaN(num)) {
-      return num;
+    
+    // Fallback 1: Try to get last sequence of digits
+    const matches = admissionNumber.match(/\d+/g);
+    if (matches && matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const num = parseInt(lastMatch, 10);
+      if (!isNaN(num)) {
+        return num;
+      }
     }
-  }
-  
-  // Fallback 2: If it's a simple number string
-  const directParse = parseInt(admissionNumber, 10);
-  if (!isNaN(directParse)) {
-    return directParse;
-  }
-  
-  // Fallback 3: Return a large number for non-numeric strings
-  return 999999;
-};
+    
+    // Fallback 2: If it's a simple number string
+    const directParse = parseInt(admissionNumber, 10);
+    if (!isNaN(directParse)) {
+      return directParse;
+    }
+    
+    // Fallback 3: Return a large number for non-numeric strings
+    return 999999;
+  };
 
   // Get level from admission number (extracts PN, NU, PR, JS from KCC/PN/2026/001)
   const getLevelFromAdmissionNumber = (admissionNumber) => {
@@ -156,106 +155,104 @@ const getAdmissionNumberNumeric = (admissionNumber) => {
   };
 
   // Sort and filter students based on criteria
-// Update the filteredAndSortedStudents useMemo in Admissions.jsx
+  const filteredAndSortedStudents = useMemo(() => {
+    // First, apply filters
+    const filtered = safeFilter(students, student => {
+      const matchesSearch = searchTerm === '' || 
+        student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.parentName?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesLevel = selectedLevel === 'All' || student.level === selectedLevel;
+      
+      const matchesClass = selectedClass === 'All' || student.className === selectedClass;
+      
+      const matchesStatus = statusFilter === 'All' || student.status === statusFilter;
+      
+      return matchesSearch && matchesLevel && matchesClass && matchesStatus;
+    });
 
-// Sort and filter students based on criteria
-const filteredAndSortedStudents = useMemo(() => {
-  // First, apply filters
-  const filtered = safeFilter(students, student => {
-    const matchesSearch = searchTerm === '' || 
-      student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.parentName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesLevel = selectedLevel === 'All' || student.level === selectedLevel;
-    
-    const matchesClass = selectedClass === 'All' || student.className === selectedClass;
-    
-    const matchesStatus = statusFilter === 'All' || student.status === statusFilter;
-    
-    return matchesSearch && matchesLevel && matchesClass && matchesStatus;
-  });
-
-  // Helper function to get student's level - prioritize student.level, fallback to admission number
-  const getStudentLevel = (student) => {
-    // First, use the student's level property if available
-    if (student.level && levelOrder.includes(student.level)) {
-      return student.level;
-    }
-    
-    // Fallback: extract from admission number
-    if (student.admissionNumber) {
-      const parts = student.admissionNumber.split('/');
-      if (parts.length >= 2) {
-        const levelFromAdmission = parts[1]?.toUpperCase();
-        if (levelOrder.includes(levelFromAdmission)) {
-          return levelFromAdmission;
+    // Helper function to get student's level - prioritize student.level, fallback to admission number
+    const getStudentLevel = (student) => {
+      // First, use the student's level property if available
+      if (student.level && levelOrder.includes(student.level)) {
+        return student.level;
+      }
+      
+      // Fallback: extract from admission number
+      if (student.admissionNumber) {
+        const parts = student.admissionNumber.split('/');
+        if (parts.length >= 2) {
+          const levelFromAdmission = parts[1]?.toUpperCase();
+          if (levelOrder.includes(levelFromAdmission)) {
+            return levelFromAdmission;
+          }
         }
       }
-    }
-    
-    return ''; // Return empty if no level found
-  };
-
-  // Apply sorting based on filter combination
-  return [...filtered].sort((a, b) => {
-    // Get numeric admission numbers for comparison
-    const numA = getAdmissionNumberNumeric(a.admissionNumber);
-    const numB = getAdmissionNumberNumeric(b.admissionNumber);
-    
-    // Get levels for both students
-    const levelA = getStudentLevel(a);
-    const levelB = getStudentLevel(b);
-    
-    // CASE 1: When "All Levels" is selected
-    if (selectedLevel === 'All') {
-      // First, sort by level order
-      const levelAIndex = levelOrder.indexOf(levelA);
-      const levelBIndex = levelOrder.indexOf(levelB);
       
-      // If both levels are found and different, sort by level
-      if (levelAIndex !== -1 && levelBIndex !== -1 && levelAIndex !== levelBIndex) {
-        return levelAIndex - levelBIndex;
+      return ''; // Return empty if no level found
+    };
+
+    // Apply sorting based on filter combination
+    return [...filtered].sort((a, b) => {
+      // Get numeric admission numbers for comparison
+      const numA = getAdmissionNumberNumeric(a.admissionNumber);
+      const numB = getAdmissionNumberNumeric(b.admissionNumber);
+      
+      // Get levels for both students
+      const levelA = getStudentLevel(a);
+      const levelB = getStudentLevel(b);
+      
+      // CASE 1: When "All Levels" is selected
+      if (selectedLevel === 'All') {
+        // First, sort by level order
+        const levelAIndex = levelOrder.indexOf(levelA);
+        const levelBIndex = levelOrder.indexOf(levelB);
+        
+        // If both levels are found and different, sort by level
+        if (levelAIndex !== -1 && levelBIndex !== -1 && levelAIndex !== levelBIndex) {
+          return levelAIndex - levelBIndex;
+        }
+        
+        // If levels are the same or not found, sort by class
+        if (levelA === levelB && classOrder[levelA]) {
+          const classOrderForLevel = classOrder[levelA];
+          const classAIndex = classOrderForLevel.indexOf(a.className);
+          const classBIndex = classOrderForLevel.indexOf(b.className);
+          
+          if (classAIndex !== classBIndex) {
+            return classAIndex - classBIndex;
+          }
+        }
+        
+        // Same class or no class order, sort by admission number
+        return numA - numB;
       }
       
-      // If levels are the same or not found, sort by class
-      if (levelA === levelB && classOrder[levelA]) {
-        const classOrderForLevel = classOrder[levelA];
+      // CASE 2: When specific level is selected but "All Classes"
+      else if (selectedClass === 'All') {
+        // Sort by class order within the selected level
+        const classOrderForLevel = classOrder[selectedLevel] || [];
         const classAIndex = classOrderForLevel.indexOf(a.className);
         const classBIndex = classOrderForLevel.indexOf(b.className);
         
+        // If both in same class order, sort by class
         if (classAIndex !== classBIndex) {
           return classAIndex - classBIndex;
         }
+        
+        // Same class, sort by admission number
+        return numA - numB;
       }
       
-      // Same class or no class order, sort by admission number
-      return numA - numB;
-    }
-    
-    // CASE 2: When specific level is selected but "All Classes"
-    else if (selectedClass === 'All') {
-      // Sort by class order within the selected level
-      const classOrderForLevel = classOrder[selectedLevel] || [];
-      const classAIndex = classOrderForLevel.indexOf(a.className);
-      const classBIndex = classOrderForLevel.indexOf(b.className);
-      
-      // If both in same class order, sort by class
-      if (classAIndex !== classBIndex) {
-        return classAIndex - classBIndex;
+      // CASE 3: When specific class is selected
+      else {
+        // Sort only by admission number within the selected class
+        return numA - numB;
       }
-      
-      // Same class, sort by admission number
-      return numA - numB;
-    }
-    
-    // CASE 3: When specific class is selected
-    else {
-      // Sort only by admission number within the selected class
-      return numA - numB;
-    }
-  });
-}, [students, searchTerm, selectedLevel, selectedClass, statusFilter]);
+    });
+  }, [students, searchTerm, selectedLevel, selectedClass, statusFilter]);
+
   // Calculate statistics (based on ALL students, not filtered ones)
   const stats = {
     total: students.length,
@@ -265,18 +262,6 @@ const filteredAndSortedStudents = useMemo(() => {
       NU: safeFilter(students, s => s.level === 'NU').length,
       PR: safeFilter(students, s => s.level === 'PR').length,
       JS: safeFilter(students, s => s.level === 'JS').length,
-    }
-  };
-
-  // Get display text for current sorting
-  const getSortDisplayText = () => {
-    if (selectedLevel === 'All') {
-      return 'Sorted by: Level (PN → NU → PR → JS) → Class → Admission No.';
-    } else if (selectedClass === 'All') {
-      const levelName = levels.find(l => l.code === selectedLevel)?.name || selectedLevel;
-      return `Sorted by: Class → Admission No. (${levelName} level)`;
-    } else {
-      return 'Sorted by: Admission Number';
     }
   };
 
@@ -341,23 +326,6 @@ const filteredAndSortedStudents = useMemo(() => {
         classes={classes}
       />
 
-      {/* Sorting Info Banner */}
-      {filteredAndSortedStudents.length > 0 && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">📊 Sorting:</span>
-              <span>{getSortDisplayText()}</span>
-            </div>
-            <div className="text-xs text-blue-600">
-              {selectedLevel === 'All' && (
-                <span>Pre-Nursery (PN) → Nursery (NU) → Primary (PR) → Junior Secondary (JS)</span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Students List */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -390,9 +358,8 @@ const filteredAndSortedStudents = useMemo(() => {
           generateAdmissionLetter={generateAdmissionLetter}
           handleDeleteStudent={handleDeleteStudent}
           levels={levels}
-          selectedLevel={selectedLevel}      // Pass selectedLevel prop
-          selectedClass={selectedClass}       // Pass selectedClass prop
-          sortInfo={getSortDisplayText()}    // Pass sort info for display
+          selectedLevel={selectedLevel}
+          selectedClass={selectedClass}
         />
       ) : (
         <StudentCardView
@@ -405,9 +372,8 @@ const filteredAndSortedStudents = useMemo(() => {
           generateAdmissionLetter={generateAdmissionLetter}
           handleDeleteStudent={handleDeleteStudent}
           levels={levels}
-          selectedLevel={selectedLevel}      // Pass selectedLevel prop
-          selectedClass={selectedClass}       // Pass selectedClass prop
-          sortInfo={getSortDisplayText()}    // Pass sort info for display
+          selectedLevel={selectedLevel}
+          selectedClass={selectedClass}
         />
       )}
 
