@@ -57,7 +57,7 @@ const generatePDF = async (forPrint = false) => {
       tempDiv.style.left = '-9999px';
       tempDiv.style.width = '794px'; // A4 width in pixels (794px = 210mm)
       tempDiv.style.backgroundColor = 'white';
-      tempDiv.style.padding = '40px';
+      tempDiv.style.padding = '30px'; // Reduced padding from 40px to 30px
       tempDiv.style.boxSizing = 'border-box';
       tempDiv.style.fontFamily = "'Times New Roman', Times, serif";
       tempDiv.style.position = 'relative';
@@ -70,15 +70,46 @@ const generatePDF = async (forPrint = false) => {
       const buttons = letterContent.querySelectorAll('.action-buttons, .watermark-text');
       buttons.forEach(button => button.remove());
       
+      // Create a compact version for PDF
+      const compactContent = letterContent.cloneNode(true);
+      
+      // Reduce spacing for PDF
+      const elementsToCompact = compactContent.querySelectorAll('p, div, ul, li');
+      elementsToCompact.forEach(el => {
+        const style = window.getComputedStyle(el);
+        const currentMargin = parseFloat(style.marginBottom);
+        const currentPadding = parseFloat(style.padding);
+        
+        if (currentMargin > 8) {
+          el.style.marginBottom = '8px';
+        }
+        if (currentPadding > 10) {
+          el.style.padding = '8px';
+        }
+      });
+      
+      // Reduce spacing in details container
+      const detailsContainer = compactContent.querySelector('.bg-gradient-to-r');
+      if (detailsContainer) {
+        detailsContainer.style.padding = '12px';
+        detailsContainer.style.margin = '10px 0';
+      }
+      
+      // Reduce spacing in signatures
+      const signatures = compactContent.querySelectorAll('.flex.justify-between');
+      signatures.forEach(sig => {
+        sig.style.marginTop = '20px';
+      });
+      
       // Update styles for PDF
-      letterContent.style.width = '100%';
-      letterContent.style.padding = '0';
-      letterContent.style.margin = '0';
-      letterContent.style.border = 'none';
-      letterContent.style.boxShadow = 'none';
-      letterContent.style.backgroundColor = 'white';
-      letterContent.style.position = 'relative';
-      letterContent.style.zIndex = '10';
+      compactContent.style.width = '100%';
+      compactContent.style.padding = '0';
+      compactContent.style.margin = '0';
+      compactContent.style.border = 'none';
+      compactContent.style.boxShadow = 'none';
+      compactContent.style.backgroundColor = 'white';
+      compactContent.style.position = 'relative';
+      compactContent.style.zIndex = '10';
       
       // Create watermark container
       const watermarkContainer = document.createElement('div');
@@ -111,7 +142,7 @@ const generatePDF = async (forPrint = false) => {
           watermark.style.display = 'flex';
           watermark.style.alignItems = 'center';
           watermark.style.justifyContent = 'center';
-          watermark.style.opacity = '0.15'; // Increased opacity
+          watermark.style.opacity = '0.15';
           
           const watermarkImg = document.createElement('img');
           watermarkImg.src = schoolLogo;
@@ -128,22 +159,24 @@ const generatePDF = async (forPrint = false) => {
         return gridContainer;
       };
       
-      // Add PDF-specific styles
+      // Add PDF-specific styles with more compact layout
       const style = document.createElement('style');
       style.innerHTML = `
         @media all {
           * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
           }
           
           .pdf-content {
             width: 100%;
             max-width: 794px;
             margin: 0 auto;
-            padding: 40px;
+            padding: 30px;
             background: white;
             font-family: 'Times New Roman', Times, serif;
-            line-height: 1.6;
+            line-height: 1.5;
             color: #333;
             position: relative;
           }
@@ -152,16 +185,16 @@ const generatePDF = async (forPrint = false) => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
             border-bottom: 2px solid #4F46E5;
             position: relative;
             z-index: 20;
           }
           
           .school-logo-pdf {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             object-fit: contain;
             flex-shrink: 0;
           }
@@ -169,49 +202,49 @@ const generatePDF = async (forPrint = false) => {
           .school-info-pdf {
             flex: 1;
             text-align: center;
-            padding: 0 20px;
+            padding: 0 15px;
           }
           
           .school-name-pdf {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
+            color: #4F46E5;
+            margin-bottom: 3px;
+          }
+          
+          .school-motto-pdf {
+            font-size: 13px;
+            font-style: italic;
             color: #4F46E5;
             margin-bottom: 5px;
           }
           
-          .school-motto-pdf {
-            font-size: 14px;
-            font-style: italic;
-            color: #4F46E5;
-            margin-bottom: 8px;
-          }
-          
           .school-address-pdf {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
           }
           
           .student-photo-pdf {
-            width: 90px;
-            height: 110px;
+            width: 70px;
+            height: 90px;
             object-fit: cover;
             border: 1px solid #4F46E5;
-            border-radius: 3px;
+            border-radius: 2px;
             flex-shrink: 0;
           }
           
           .date-pdf {
             text-align: right;
-            margin-bottom: 25px;
-            font-size: 13px;
+            margin-bottom: 15px;
+            font-size: 12px;
             position: relative;
             z-index: 20;
           }
           
           .recipient-pdf {
-            margin-bottom: 25px;
-            padding-left: 15px;
+            margin-bottom: 15px;
+            padding-left: 12px;
             border-left: 3px solid #4F46E5;
             position: relative;
             z-index: 20;
@@ -219,32 +252,32 @@ const generatePDF = async (forPrint = false) => {
           
           .subject-pdf {
             font-weight: bold;
-            margin: 25px 0;
+            margin: 15px 0;
             text-align: center;
-            font-size: 16px;
+            font-size: 15px;
             text-decoration: underline;
             position: relative;
             z-index: 20;
           }
           
           .content-pdf {
-            margin-bottom: 35px;
-            font-size: 13px;
+            margin-bottom: 20px;
+            font-size: 12px;
             position: relative;
             z-index: 20;
           }
           
           .content-pdf p {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             text-align: justify;
           }
           
           .details-container-pdf {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 20px 0;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 12px 0;
             position: relative;
             z-index: 20;
           }
@@ -252,70 +285,67 @@ const generatePDF = async (forPrint = false) => {
           .details-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-top: 10px;
+            gap: 10px;
+            margin-top: 8px;
           }
           
           .detail-item {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           
           .detail-label {
-            font-size: 10px;
+            font-size: 9px;
             color: #666;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            letter-spacing: 0.3px;
+            margin-bottom: 1px;
           }
           
           .detail-value {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             color: #333;
-            padding: 4px 0;
+            padding: 3px 0;
             border-bottom: 1px dashed #cbd5e0;
-          }
-          
-          .expected-completion {
-            grid-column: span 4;
           }
           
           .signatures-pdf {
             display: flex;
             justify-content: space-between;
-            margin-top: 40px;
-            padding-top: 20px;
+            margin-top: 25px;
+            padding-top: 15px;
             border-top: 1px solid #cbd5e0;
             position: relative;
             z-index: 20;
           }
           
-          .signature-left {
-            width: 200px;
-          }
-          
-          .signature-right {
-            width: 200px;
-            text-align: right;
-          }
-          
           .owner-signature-img {
-            height: 60px;
-            width: 180px;
+            height: 50px;
+            width: 140px;
             object-fit: contain;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
           }
           
           .footer-pdf {
             text-align: center;
-            margin-top: 30px;
-            padding-top: 15px;
+            margin-top: 20px;
+            padding-top: 10px;
             border-top: 1px solid #e2e8f0;
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
             position: relative;
             z-index: 20;
+          }
+          
+          /* Reduce list spacing */
+          .content-pdf ul {
+            margin-left: 15px;
+            margin-bottom: 10px;
+          }
+          
+          .content-pdf li {
+            margin-bottom: 4px;
           }
           
           /* Watermark styles */
@@ -330,9 +360,9 @@ const generatePDF = async (forPrint = false) => {
             opacity: 0.15;
             background-image: url("${schoolLogo}");
             background-repeat: repeat;
-            background-size: 150px 150px;
+            background-size: 120px 120px;
             background-position: 0 0;
-            opacity: 0.18;
+            opacity: 0.15;
             transform: rotate(-45deg);
           }
           
@@ -344,40 +374,22 @@ const generatePDF = async (forPrint = false) => {
             height: 100%;
             z-index: 1;
             pointer-events: none;
-            opacity: 0.15;
+            opacity: 0.1;
           }
           
           .watermark-item {
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.15;
+            opacity: 0.1;
           }
           
           .watermark-logo {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             object-fit: contain;
             filter: grayscale(100%) brightness(1.2);
-            opacity: 0.18;
-          }
-          
-          .watermark-pattern {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
             opacity: 0.15;
-            background: repeating-linear-gradient(
-              45deg,
-              transparent,
-              transparent 10px,
-              rgba(79, 70, 229, 0.03) 10px,
-              rgba(79, 70, 229, 0.03) 20px
-            );
           }
         }
       `;
@@ -401,21 +413,20 @@ const generatePDF = async (forPrint = false) => {
       
       tempDiv.appendChild(style);
       tempDiv.appendChild(watermarkContainer);
-      tempDiv.appendChild(letterContent);
+      tempDiv.appendChild(compactContent);
       document.body.appendChild(tempDiv);
 
       // Create canvas from the content
       const canvas = await html2canvas(tempDiv, {
-        scale: 2, // Higher scale for better quality
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
         allowTaint: true,
         onclone: function(clonedDoc) {
-          // Ensure watermarks are visible in cloned document
           const watermarks = clonedDoc.querySelectorAll('.watermark-overlay, .watermark-grid, .watermark-pattern');
           watermarks.forEach(wm => {
-            wm.style.opacity = '0.18'; // Ensure opacity is set
+            wm.style.opacity = '0.15';
           });
         }
       });
@@ -429,18 +440,33 @@ const generatePDF = async (forPrint = false) => {
       });
 
       // Calculate dimensions
-      const imgWidth = 210; // A4 width in mm
+      const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      // Add image to PDF
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // Check if content fits on one page
+      const maxPageHeight = 297; // A4 height in mm
+      if (imgHeight > maxPageHeight) {
+        // Content is too long, scale it down to fit
+        const scaleFactor = maxPageHeight / imgHeight * 0.95; // 95% to ensure footer fits
+        const scaledHeight = imgHeight * scaleFactor;
+        const scaledWidth = imgWidth * scaleFactor;
+        
+        // Center the scaled content
+        const xOffset = (210 - scaledWidth) / 2;
+        const yOffset = (297 - scaledHeight) / 2;
+        
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
+      } else {
+        // Content fits normally
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      }
 
       // Clean up
       document.body.removeChild(tempDiv);
 
       if (forPrint) {
-        // For printing, open in new window
         const pdfBlob = pdf.output('blob');
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const printWindow = window.open(pdfUrl);
@@ -451,7 +477,6 @@ const generatePDF = async (forPrint = false) => {
           };
         }
       } else {
-        // For download, save as PDF
         pdf.save(`Admission_Letter_${selectedLetterStudent.fullName.replace(/\s+/g, '_')}.pdf`);
         setIsGeneratingPDF(false);
       }
@@ -461,7 +486,6 @@ const generatePDF = async (forPrint = false) => {
       setIsGeneratingPDF(false);
       setIsGeneratingPrint(false);
       
-      // Fallback to simple HTML download
       if (!forPrint) {
         downloadHTMLFallback();
       } else {
@@ -469,7 +493,6 @@ const generatePDF = async (forPrint = false) => {
       }
     }
   };
-
   // Fallback HTML download function
   const downloadHTMLFallback = () => {
     const completionYear = getCompletionYear(selectedLetterStudent.admissionDate, selectedLetterStudent.level);
@@ -520,7 +543,7 @@ const generatePDF = async (forPrint = false) => {
     });
   };
 
-  const createHTMLContent = (logoDataUrl, signatureDataUrl, completionYear, duration, currentDate) => {
+ const createHTMLContent = (logoDataUrl, signatureDataUrl, completionYear, duration, currentDate) => {
     return `
       <!DOCTYPE html>
       <html>
@@ -529,17 +552,24 @@ const generatePDF = async (forPrint = false) => {
         <style>
           @page {
             size: A4;
-            margin: 20mm;
+            margin: 15mm; /* Reduced from 20mm */
           }
           body {
             font-family: 'Times New Roman', Times, serif;
             margin: 0;
-            padding: 20mm;
-            line-height: 1.6;
+            padding: 15mm; /* Reduced from 20mm */
+            line-height: 1.5; /* Reduced from 1.6 */
             color: #333;
             width: 210mm;
             min-height: 297mm;
             position: relative;
+          }
+          /* ... keep other styles but make them more compact ... */
+          .details-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Changed to 4 columns */
+            gap: 10px; /* Reduced from 15px */
+            margin-top: 8px; /* Reduced from 10px */
           }
           .watermark {
             position: absolute;
