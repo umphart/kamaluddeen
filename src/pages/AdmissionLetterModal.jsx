@@ -1036,7 +1036,7 @@ const generatePDF = async (forPrint = false) => {
               <ul className="list-disc pl-4 space-y-1 text-sm">
                 <li>School fees payment deadline is {new Date(new Date().setDate(new Date().getDate() + 14)).toLocaleDateString()}</li>
                 <li>School uniforms and books are available at the school</li>
-                <li>School hours are from 8:00 AM to 2:00 PM, Monday to Friday</li>
+                <li>School hours are from 7:30 AM to 1:30 PM, Monday to Friday</li>
               </ul>
               
               <p>We look forward to a fruitful partnership in the educational and moral development of your child. 
