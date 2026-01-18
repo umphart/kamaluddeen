@@ -64,19 +64,27 @@ const StudentForm = ({ onClose, onStudentAdded, studentData, isEditMode = false 
   const formRef = useRef(null);
 
   // Initialize form data if in edit mode
-  useEffect(() => {
-    if (isEditMode && studentData) {
-      const editData = {
-        ...studentData,
-        photo: studentData.photo ? studentData.photo : null
-      };
-      setFormData(editData);
-      
-      if (studentData.photo && typeof studentData.photo === 'string') {
-        setPhotoPreview(studentData.photo);
-      }
+// In the useEffect for edit mode:
+useEffect(() => {
+  if (isEditMode && studentData) {
+    console.log('Initializing edit form with student data:', studentData);
+    
+    const editData = {
+      ...studentData,
+      // Don't modify photo here, keep it as is
+    };
+    
+    setFormData(editData);
+    
+    // Set photo preview if photo exists
+    if (studentData.photo) {
+      setPhotoPreview(studentData.photo);
+      console.log('Set photo preview from existing data');
+    } else {
+      console.log('No existing photo');
     }
-  }, [isEditMode, studentData]);
+  }
+}, [isEditMode, studentData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -93,47 +101,48 @@ const StudentForm = ({ onClose, onStudentAdded, studentData, isEditMode = false 
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      setErrors(prev => ({
-        ...prev,
-        photo: 'Please upload a valid image (JPEG, PNG, GIF)'
-      }));
-      toast.error('Invalid file type. Please upload JPEG, PNG or GIF');
-      return;
-    }
-    
-    if (file.size > 2 * 1024 * 1024) {
-      setErrors(prev => ({
-        ...prev,
-        photo: 'File size must be less than 2MB'
-      }));
-      toast.error('File size too large. Maximum 2MB allowed');
-      return;
-    }
-    
-    setFormData(prev => ({
+// In StudentForm.jsx, modify handleFileChange:
+const handleFileChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    setErrors(prev => ({
       ...prev,
-      photo: file
+      photo: 'Please upload a valid image (JPEG, PNG, GIF)'
     }));
-    
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setPhotoPreview(previewUrl);
-    
-    if (errors.photo) {
-      setErrors(prev => ({
-        ...prev,
-        photo: ''
-      }));
-    }
-    
-    toast.success('Photo uploaded successfully');
-  };
+    toast.error('Invalid file type. Please upload JPEG, PNG or GIF');
+    return;
+  }
+  
+  if (file.size > 2 * 1024 * 1024) {
+    setErrors(prev => ({
+      ...prev,
+      photo: 'File size must be less than 2MB'
+    }));
+    toast.error('File size too large. Maximum 2MB allowed');
+    return;
+  }
+  
+  setFormData(prev => ({
+    ...prev,
+    photo: file // Store the File object
+  }));
+  
+  // Create preview URL
+  const previewUrl = URL.createObjectURL(file);
+  setPhotoPreview(previewUrl);
+  
+  if (errors.photo) {
+    setErrors(prev => ({
+      ...prev,
+      photo: ''
+    }));
+  }
+  
+  toast.success('Photo uploaded successfully');
+};
 
   const validateForm = () => {
     const newErrors = {};
@@ -180,43 +189,130 @@ const StudentForm = ({ onClose, onStudentAdded, studentData, isEditMode = false 
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  console.log('=== FORM SUBMIT START ===');
+  console.log('isEditMode:', isEditMode);
+  console.log('formData.photo:', formData.photo);
+  console.log('formData.photo type:', typeof formData.photo);
+  console.log('formData.photo instanceof File:', formData.photo instanceof File);
+  console.log('formData.photo startsWith data:image?', 
+    typeof formData.photo === 'string' ? formData.photo.startsWith('data:image') : 'N/A');
+  console.log('formData.photo startsWith http?', 
+    typeof formData.photo === 'string' ? formData.photo.startsWith('http') : 'N/A');
+  console.log('photoPreview:', photoPreview);
+  console.log('studentData (if edit):', studentData);
+  console.log('studentData photo (if edit):', studentData?.photo);
+  
+  if (!validateForm()) {
+    toast.error('Please fix the errors in the form');
+    return;
+  }
+  
+  setIsSubmitting(true);
+  
+  try {
+    let photoToSend = formData.photo;
     
-    if (!validateForm()) {
-      toast.error('Please fix the errors in the form');
-      return;
-    }
+    // Debug: Check what we're sending
+    console.log('🔄 Processing photo data...');
+    console.log('Original photo value:', photoToSend);
+    console.log('Original photo type:', typeof photoToSend);
     
-    setIsSubmitting(true);
+    // ======================
+    // PHOTO HANDLING LOGIC
+    // ======================
     
-    try {
-      let photoBase64 = formData.photo;
+    if (photoToSend instanceof File) {
+      // Case 1: New file uploaded
+      console.log('📸 New File object detected:', photoToSend.name, photoToSend.type, photoToSend.size);
+      // Keep as File object - studentService will handle conversion/upload
       
-      // Convert file to base64 if it's a File object
-      if (formData.photo instanceof File) {
-        photoBase64 = await convertToBase64(formData.photo);
+    } else if (typeof photoToSend === 'string') {
+      if (photoToSend.startsWith('data:image')) {
+        // Case 2: Base64 string from new upload (create or edit with new photo)
+        console.log('📸 Base64 string detected (new upload)');
+        console.log('Base64 length:', photoToSend.length);
+        console.log('Base64 preview:', photoToSend.substring(0, 100) + '...');
+        
+      } else if (photoToSend.startsWith('http')) {
+        // Case 3: Existing URL from database
+        console.log('🌐 Existing photo URL detected:', photoToSend);
+        
+        // Check if this is the same as original student photo
+        if (isEditMode && studentData && studentData.photo === photoToSend) {
+          console.log('✅ Same photo URL as original - no changes made');
+        } else if (!photoPreview && photoToSend === '') {
+          // Case 4: Photo was removed (empty string)
+          console.log('🗑️ Photo was removed by user');
+          photoToSend = ''; // Empty string to indicate removal
+        } else {
+          console.log('⚠️ Unexpected photo string:', photoToSend);
+        }
+      } else if (photoToSend === '' || photoToSend === null || photoToSend === undefined) {
+        // Case 5: No photo
+        console.log('❌ No photo provided');
+        photoToSend = null;
       }
       
-      const studentPayload = {
-        ...formData,
-        photo: photoBase64,
-        admissionDate: formData.admissionDate
-      };
+    } else if (!photoToSend) {
+      // Case 6: Null/undefined photo
+      console.log('❌ Photo is null/undefined');
+      photoToSend = null;
+    }
+    
+    console.log('✅ Final photo value to send:', photoToSend);
+    console.log('✅ Final photo type to send:', typeof photoToSend);
+    
+    // ======================
+    // BUILD PAYLOAD
+    // ======================
+    
+    const studentPayload = {
+      fullName: formData.fullName,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      level: formData.level,
+      className: formData.className,
+      parentName: formData.parentName,
+      parentPhone: formData.parentPhone,
+      parentEmail: formData.parentEmail || '',
+      address: formData.address,
+      status: formData.status,
+      admissionDate: formData.admissionDate,
+      photo: photoToSend // Pass photo as-is (File, base64 string, URL, or null)
+    };
+    
+    console.log('📦 Final payload being sent:');
+    console.log('- All fields:', studentPayload);
+    console.log('- Photo exists:', !!studentPayload.photo);
+    console.log('- Photo type:', typeof studentPayload.photo);
+    
+    // ======================
+    // CALL SERVICE
+    // ======================
+    
+    let resultStudent;
+    if (isEditMode) {
+      console.log('🔄 EDIT MODE - Updating student');
+      console.log('Student ID:', studentData?.id);
       
-      let resultStudent;
-      if (isEditMode) {
-        // Update existing student - FIXED: Use updateStudent not addStudent
-        if (!studentData?.id) {
-          throw new Error('Student ID is required for update');
-        }
-        
+      if (!studentData?.id) {
+        throw new Error('Student ID is required for update');
+      }
+      
+      try {
+        console.log('📞 Calling studentService.updateStudent()...');
         resultStudent = await studentService.updateStudent(studentData.id, studentPayload);
+        console.log('✅ Update successful:', resultStudent);
+        
         if (!resultStudent) {
-          throw new Error('Failed to update student');
+          throw new Error('Failed to update student - no data returned');
         }
         
         if (onStudentAdded) {
+          console.log('📢 Calling onStudentAdded callback...');
           onStudentAdded(resultStudent);
         }
         
@@ -226,16 +322,32 @@ const StudentForm = ({ onClose, onStudentAdded, studentData, isEditMode = false 
             <p className="text-sm"><strong>Name:</strong> {formData.fullName}</p>
             <p className="text-sm"><strong>Class:</strong> {formData.className}</p>
             <p className="text-sm"><strong>Status:</strong> {formData.status}</p>
+            <p className="text-sm"><strong>Photo Updated:</strong> {resultStudent.photo ? 'Yes' : 'No'}</p>
           </div>,
           {
             duration: 4000,
           }
         );
-      } else {
-        // Add new student
+        
+      } catch (updateError) {
+        console.error('❌ Update error details:', updateError);
+        throw updateError;
+      }
+      
+    } else {
+      console.log('➕ CREATE MODE - Adding new student');
+      
+      try {
+        console.log('📞 Calling studentService.addStudent()...');
         resultStudent = await studentService.addStudent(studentPayload);
+        console.log('✅ Add successful:', resultStudent);
+        
+        if (!resultStudent) {
+          throw new Error('Failed to add student - no data returned');
+        }
         
         if (onStudentAdded) {
+          console.log('📢 Calling onStudentAdded callback...');
           onStudentAdded(resultStudent);
         }
         
@@ -245,51 +357,93 @@ const StudentForm = ({ onClose, onStudentAdded, studentData, isEditMode = false 
             <p className="text-sm"><strong>Name:</strong> {formData.fullName}</p>
             <p className="text-sm"><strong>Class:</strong> {formData.className}</p>
             <p className="text-sm"><strong>Admission No:</strong> {resultStudent.admissionNumber}</p>
+            <p className="text-sm"><strong>Photo Added:</strong> {resultStudent.photo ? 'Yes' : 'No'}</p>
           </div>,
           {
             duration: 4000,
           }
         );
+        
+      } catch (addError) {
+        console.error('❌ Add error details:', addError);
+        throw addError;
       }
-      
-      // Close form after success
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error saving student:', error);
-      toast.error(
-        <div>
-          <p className="font-semibold">{isEditMode ? 'Update Failed' : 'Registration Failed'}</p>
-          <p className="text-sm">{error.message}</p>
-        </div>,
-        {
-          duration: 5000,
-        }
-      );
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+    
+    // ======================
+    // SUCCESS HANDLING
+    // ======================
+    
+    console.log('✅ Operation completed successfully');
+    console.log('Result student data:', resultStudent);
+    console.log('Result student photo:', resultStudent?.photo);
+    
+    // Close form after success
+    setTimeout(() => {
+      console.log('🚪 Closing form...');
+      onClose();
+    }, 2000);
+    
+  } catch (error) {
+    console.error('❌❌❌ ERROR in handleSubmit:');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
+    
+    toast.error(
+      <div>
+        <p className="font-semibold">{isEditMode ? 'Update Failed' : 'Registration Failed'}</p>
+        <p className="text-sm">{error.message}</p>
+        <p className="text-xs text-gray-500 mt-1">Check console for details</p>
+      </div>,
+      {
+        duration: 6000,
+      }
+    );
+  } finally {
+    console.log('=== FORM SUBMIT END ===');
+    setIsSubmitting(false);
+  }
+};
 
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
+const convertToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    console.log('🔄 Converting File to base64:', file.name, file.type, file.size);
+    
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    
+    reader.onload = () => {
+      const result = reader.result;
+      console.log('✅ Base64 conversion successful');
+      console.log('   Result type:', typeof result);
+      console.log('   Result length:', result.length);
+      console.log('   First 50 chars:', result.substring(0, 50) + '...');
+      resolve(result);
+    };
+    
+    reader.onerror = error => {
+      console.error('❌ Base64 conversion failed:', error);
+      reject(error);
+    };
+  });
+};
 
-  const removePhoto = () => {
+ const removePhoto = () => {
+  if (isEditMode) {
+    // In edit mode, set photo to empty string instead of null
+    setFormData(prev => ({ ...prev, photo: '' }));
+  } else {
+    // In create mode, set to null
     setFormData(prev => ({ ...prev, photo: null }));
-    if (photoPreview) {
-      URL.revokeObjectURL(photoPreview);
-    }
-    setPhotoPreview(null);
-    toast.success('Photo removed');
-  };
+  }
+  
+  if (photoPreview) {
+    URL.revokeObjectURL(photoPreview);
+  }
+  setPhotoPreview(null);
+  toast.success('Photo removed');
+};
 
   const resetForm = () => {
     setFormData({

@@ -212,3 +212,59 @@
 .logo-circle {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+/* Add to src/pages/Login.css */
+.create-account-section {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.divider {
+  position: relative;
+  color: #718096;
+  font-size: 13px;
+  margin: 15px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 45%;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.create-account-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #667eea;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.create-account-link:hover {
+  background: #f7fafc;
+  border-color: #667eea;
+  text-decoration: none;
+}
+
+.link-icon {
+  width: 16px;
+  height: 16px;
+}

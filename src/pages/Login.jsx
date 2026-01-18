@@ -1,34 +1,31 @@
-// src/pages/Login.jsx
+// src/pages/Login.jsx - Complete version
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // useNavigate for v6
-import { FiLock, FiUser, FiLogIn } from 'react-icons/fi';
+import { useNavigate, Link } from 'react-router-dom';
+import { FiLock, FiUser, FiLogIn, FiAlertCircle, FiUserPlus } from 'react-icons/fi';
 import './Login.css';
 import schoolLogo from './kcc.jpeg';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate(); // useNavigate for v6
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setLoginLoading(true);
     setError('');
 
     try {
       const success = await onLogin(username, password);
-      if (success) {
-        // Login successful - navigate to dashboard
-        navigate('/');
-      } else {
-        setError('Invalid credentials');
+      if (!success) {
+        setError('Invalid username or password');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
     }
   };
 
@@ -52,7 +49,7 @@ const Login = ({ onLogin }) => {
         <form className="login-form" onSubmit={handleSubmit}>
           {error && (
             <div className="error-message">
-              {error}
+              <FiAlertCircle /> {error}
             </div>
           )}
 
@@ -70,8 +67,8 @@ const Login = ({ onLogin }) => {
               className="form-input"
               required
               autoFocus
+              disabled={loginLoading}
             />
-            <div className="hint-text">Default: admin</div>
           </div>
 
           <div className="form-group">
@@ -87,24 +84,33 @@ const Login = ({ onLogin }) => {
               placeholder="Enter password"
               className="form-input"
               required
+              disabled={loginLoading}
             />
-            <div className="hint-text">Default: kcc123</div>
           </div>
 
           <button
             type="submit"
             className="login-button"
-            disabled={loading}
+            disabled={loginLoading}
           >
-            {loading ? (
+            {loginLoading ? (
               <span className="loading-spinner-small"></span>
             ) : (
               <>
                 <FiLogIn className="button-icon" />
-                {loading ? 'Logging in...' : 'Login'}
+                {loginLoading ? 'Logging in...' : 'Login'}
               </>
             )}
           </button>
+
+          {/* Add Create Account Link */}
+          <div className="create-account-section">
+            <p className="divider">or</p>
+            <Link to="/create-account" className="create-account-link">
+              <FiUserPlus className="link-icon" />
+              Create New Account
+            </Link>
+          </div>
         </form>
 
         <div className="login-footer">

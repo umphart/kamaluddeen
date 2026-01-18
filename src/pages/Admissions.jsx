@@ -90,20 +90,53 @@ const Admissions = () => {
     setStudents(prev => prev.map(s => 
       s.id === updatedStudent.id ? updatedStudent : s
     ));
-    toast.success('Student updated successfully!');
   };
 
-  const handleDeleteStudent = async (studentId) => {
-    if (window.confirm('Are you sure you want to delete this student?')) {
-      try {
-        await studentService.deleteStudent(studentId);
-        setStudents(prev => prev.filter(s => s.id !== studentId));
-        toast.success('Student deleted successfully!');
-      } catch (error) {
-        toast.error('Failed to delete student');
-      }
-    }
-  };
+const handleDeleteStudent = async (studentId) => {
+  // Create a toast with confirmation buttons
+  const toastId = toast.custom(
+    (t) => (
+      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} 
+        max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                Delete Student
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Are you sure you want to delete this student? This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex border-l border-gray-200">
+          <button
+            onClick={async () => {
+              try {
+                await studentService.deleteStudent(studentId);
+                setStudents(prev => prev.filter(s => s.id !== studentId));
+                toast.success('Student deleted successfully!', { id: toastId });
+              } catch (error) {
+                toast.error('Failed to delete student', { id: toastId });
+              }
+            }}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-700 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ),
+    { duration: Infinity } // Keep open until user responds
+  );
+};
 
   // Extract numeric part from admission number (handles KCC/PN/2026/001 format)
   const getAdmissionNumberNumeric = (admissionNumber) => {
