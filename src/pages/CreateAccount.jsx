@@ -1,6 +1,7 @@
+// src/pages/CreateAccount.jsx - Updated with Show Password
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiUser, FiLock, FiCheck, FiAlertCircle, FiArrowLeft } from 'react-icons/fi';
+import { FiUser, FiLock, FiCheck, FiAlertCircle, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 import { userService } from '../services/userService';
 import toast from 'react-hot-toast';
 import './CreateAccount.css';
@@ -13,9 +14,11 @@ const CreateAccount = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    role: 'admin' // Default role
+    role: 'admin'
   });
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -51,13 +54,20 @@ const CreateAccount = () => {
       [name]: value
     }));
     
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
       }));
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const handleSubmit = async (e) => {
@@ -90,16 +100,20 @@ const CreateAccount = () => {
   return (
     <div className="create-account-container">
       <div className="create-account-card">    
+        <Link to="/login" className="back-link">
+          <FiArrowLeft /> Back to Login
+        </Link>
+        
         <div className="create-account-header">
-         <div className="create-account-logo">
-  <div className="logo-circle">
-    <img 
-      src={schoolLogo} 
-      alt="KCC Logo" 
-      className="school-logo"
-    />
-  </div>
-</div>
+          <div className="create-account-logo">
+            <div className="logo-circle">
+              <img 
+                src={schoolLogo} 
+                alt="KCC Logo" 
+                className="school-logo"
+              />
+            </div>
+          </div>
           <h2>Create Admin Account</h2>
           <p className="create-account-subtitle">Set up your administrator credentials</p>
         </div>
@@ -134,17 +148,28 @@ const CreateAccount = () => {
               <FiLock className="input-icon" />
               Password
             </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Choose a strong password"
-              className={`form-input ${errors.password ? 'error' : ''}`}
-              required
-              disabled={loading}
-            />
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Choose a strong password"
+                className={`form-input ${errors.password ? 'error' : ''}`}
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={togglePasswordVisibility}
+                disabled={loading}
+                tabIndex="-1"
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
             {errors.password && (
               <div className="error-text">
                 <FiAlertCircle /> {errors.password}
@@ -158,24 +183,34 @@ const CreateAccount = () => {
               <FiLock className="input-icon" />
               Confirm Password
             </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Re-enter your password"
-              className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
-              required
-              disabled={loading}
-            />
+            <div className="password-input-container">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter your password"
+                className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={toggleConfirmPasswordVisibility}
+                disabled={loading}
+                tabIndex="-1"
+              >
+                {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <div className="error-text">
                 <FiAlertCircle /> {errors.confirmPassword}
               </div>
             )}
           </div>
-
 
           <button
             type="submit"

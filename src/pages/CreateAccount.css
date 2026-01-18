@@ -367,4 +367,66 @@ select.form-input {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}/* Add to src/pages/CreateAccount.css */
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+}
+
+.password-toggle-btn:hover:not(:disabled) {
+  color: #667eea;
+  background: #f7fafc;
+}
+
+.password-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Adjust input padding to accommodate the toggle button */
+.password-input-container .form-input {
+  padding-right: 45px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .password-input-container .form-input {
+    padding-right: 40px;
+  }
+  
+  .password-toggle-btn {
+    right: 10px;
+    width: 28px;
+    height: 28px;
+  }
+  
+  .password-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+  }
 }

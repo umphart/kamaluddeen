@@ -1,7 +1,7 @@
-// src/pages/Login.jsx - Complete version
+// src/pages/Login.jsx - Updated with Show Password
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiLock, FiUser, FiLogIn, FiAlertCircle, FiUserPlus } from 'react-icons/fi';
+import { FiLock, FiUser, FiLogIn, FiAlertCircle, FiUserPlus, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Login.css';
 import schoolLogo from './kcc.jpeg';
 
@@ -10,6 +10,7 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Add showPassword state
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -27,6 +28,10 @@ const Login = ({ onLogin }) => {
     } finally {
       setLoginLoading(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -76,16 +81,27 @@ const Login = ({ onLogin }) => {
               <FiLock className="input-icon" />
               Password
             </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              className="form-input"
-              required
-              disabled={loginLoading}
-            />
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
+                className="form-input"
+                required
+                disabled={loginLoading}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={togglePasswordVisibility}
+                disabled={loginLoading}
+                tabIndex="-1"
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
           </div>
 
           <button
