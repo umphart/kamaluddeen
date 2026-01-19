@@ -100,9 +100,6 @@ const CreateAccount = () => {
   return (
     <div className="create-account-container">
       <div className="create-account-card">    
-        <Link to="/login" className="back-link">
-          <FiArrowLeft /> Back to Login
-        </Link>
         
         <div className="create-account-header">
           <div className="create-account-logo">
