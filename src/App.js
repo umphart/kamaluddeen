@@ -44,53 +44,58 @@ function App() {
   const [setupChecked, setSetupChecked] = useState(false);
 
   // Check if setup is required and user is authenticated
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Check if admin exists
-        const { exists } = await userService.adminExists();
+// src/App.js - Updated useEffect
+useEffect(() => {
+  const initializeApp = async () => {
+    try {
+      // Check if user is already logged in first
+      const savedAuth = localStorage.getItem('isAuthenticated');
+      const savedUser = localStorage.getItem('user');
+      const authTimestamp = localStorage.getItem('authTimestamp');
+      
+      if (savedAuth === 'true' && savedUser && authTimestamp) {
+        // Check if session is still valid (24 hours)
+        const currentTime = new Date().getTime();
+        const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         
-        if (!exists) {
-          // No admin exists, setup is required
+        if (currentTime - parseInt(authTimestamp) < sessionDuration) {
+          // User is already authenticated, no need to check admin
+          setIsAuthenticated(true);
+          setUser(JSON.parse(savedUser));
           setSetupChecked(true);
           setLoading(false);
           return;
+        } else {
+          // Session expired
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('user');
+          localStorage.removeItem('authTimestamp');
+          toast.error('Session expired. Please login again.');
         }
-        
-        // Check if user is already logged in (from localStorage)
-        const savedAuth = localStorage.getItem('isAuthenticated');
-        const savedUser = localStorage.getItem('user');
-        const authTimestamp = localStorage.getItem('authTimestamp');
-        
-        if (savedAuth === 'true' && savedUser && authTimestamp) {
-          // Check if session is still valid (24 hours)
-          const currentTime = new Date().getTime();
-          const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-          
-          if (currentTime - parseInt(authTimestamp) < sessionDuration) {
-            setIsAuthenticated(true);
-            setUser(JSON.parse(savedUser));
-          } else {
-            // Session expired
-            localStorage.removeItem('isAuthenticated');
-            localStorage.removeItem('user');
-            localStorage.removeItem('authTimestamp');
-            toast.error('Session expired. Please login again.');
-          }
-        }
-        
-        setSetupChecked(true);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error initializing app:', error);
-        toast.error('Failed to initialize application');
-        setLoading(false);
-        setSetupChecked(true);
       }
-    };
+      
+      // Only check if admin exists if user is not already logged in
+      const { exists } = await userService.adminExists();
+      
+      if (!exists) {
+        // No admin exists, setup is required
+        setSetupChecked(true);
+        setLoading(false);
+        return;
+      }
+      
+      setSetupChecked(true);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      toast.error('Failed to initialize application');
+      setLoading(false);
+      setSetupChecked(true);
+    }
+  };
 
-    initializeApp();
-  }, []);
+  initializeApp();
+}, []);
 
   // Check screen size on mount and resize
   useEffect(() => {
